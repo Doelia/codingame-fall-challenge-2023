@@ -16,13 +16,6 @@ for (let i = 0; i < creatureCount; i++) {
 
 let turnId = 0;
 
-const targets = [
-    {x: 1500, y: 8500},
-    {x: 5000, y: 500},
-    {x: 8500, y: 8500},
-    {x: 5000, y: 500},
-]
-
 function getDistance(p1, p2) {
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
 }
@@ -31,13 +24,66 @@ function samePoint(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
 }
 
+function radarDirectionToPoint(radar) {
+    switch (radar) {
+        case 'TL': return {x: 0, y: 0};
+        case 'TR': return {x: 10000, y: 0};
+        case 'BR': return {x: 10000, y: 10000};
+        case 'BL': return {x: 0, y: 10000};
+    }
+}
+
+function reversePoint(point) {
+    return {
+        x: -point.x,
+        y: -point.y,
+    }
+}
+
+function randomTarget() {
+    return {
+        x: Math.floor(Math.random() * 10000),
+        y: Math.floor(Math.random() * 10000),
+    }
+}
+
+function getBottomTarget(idx) {
+    if (idx === 0) {
+        return {
+            x: 2500,
+            y: 8000,
+        }
+    }
+    else {
+        return {
+            x: 7500,
+            y: 8000,
+        }
+    }
+}
+
+function getTopTarget(idx) {
+    if (idx === 0) {
+        return {
+            x: 2500,
+            y: 500,
+        }
+    }
+    else {
+        return {
+            x: 7500,
+            y: 500,
+        }
+    }
+}
+
 let myDrones = [];
 
 // game loop
 while (true) {
 
     turnId++;
-
+    let radars = [];
 
     const myScore = parseInt(readline());
     const foeScore = parseInt(readline());
@@ -57,18 +103,26 @@ while (true) {
     const myDroneCount = parseInt(readline());
     for (let i = 0; i < myDroneCount; i++) {
         var inputs = readline().split(' ');
-        const id = parseInt(inputs[0]);
+        const droneId = parseInt(inputs[0]);
         const x = parseInt(inputs[1]);
         const y = parseInt(inputs[2]);
         const emergency = parseInt(inputs[3]);
         const battery = parseInt(inputs[4]);
 
-        let d = myDrones.find(v => v.id === id);
+        let d = myDrones.find(v => v.droneId === droneId);
         if (d) {
             d.x = x;
             d.y = y;
+            d.fishesFound = 0;
         } else {
-            myDrones.push({idx: i, id, x, y, emergency, battery, goDown: true});
+            myDrones.push({
+                idx: i,
+                droneId, x, y, emergency, battery,
+                up: false,
+                target: randomTarget(),
+                fishesFound: 0,
+                lastLightTurn: 0,
+            });
         }
 
 
@@ -83,7 +137,6 @@ while (true) {
         const droneY = parseInt(inputs[2]);
         const emergency = parseInt(inputs[3]);
         const battery = parseInt(inputs[4]);
-
     }
 
     // Créatures scannées
@@ -92,25 +145,28 @@ while (true) {
         var inputs = readline().split(' ');
         const droneId = parseInt(inputs[0]);
         const creatureId = parseInt(inputs[1]);
+
+        let myDrone = myDrones.find(d => d.droneId === droneId);
+        if (myDrone) {
+            myDrone.fishesFound++;
+        }
     }
 
     // Créatures visibles
-    let monsters = [];
+    let visibles = [];
+
     const visibleCreatureCount = parseInt(readline());
     for (let i = 0; i < visibleCreatureCount; i++) {
         var inputs = readline().split(' ');
-        const id = parseInt(inputs[0]);
+        const creatureId = parseInt(inputs[0]);
         const x = parseInt(inputs[1]);
         const y = parseInt(inputs[2]);
         const vx = parseInt(inputs[3]);
         const vy = parseInt(inputs[4]);
 
-        if (creatures[id].color === -1) {
-            monsters.push({ id, x, y, vx, vy})
-        }
+        let creature = creatures[creatureId];
+        visibles.push({ ...creature, x, y, vx, vy });
     }
-
-    console.error(monsters);
 
     const radarBlipCount = parseInt(readline());
     for (let i = 0; i < radarBlipCount; i++) {
@@ -118,48 +174,89 @@ while (true) {
         const droneId = parseInt(inputs[0]);
         const creatureId = parseInt(inputs[1]);
         const radar = inputs[2];
+
+        let creature = creatures[creatureId];
+        radars.push({
+            ...creature,
+            droneId,
+            direction: radar,
+        })
     }
 
     for (let d of myDrones) {
 
-        let goTo = '';
+
         let debug = [];
-        let goTo = d;
 
-        // ON est arrivé ! On change de target
-        if (samePoint(d, targets[d.iTarget])) {
-            debug.push('arrivé!');
-            d.iTarget++;
+        let monsters = visibles
+            .filter(c => c.type === -1)
+            .filter(c => getDistance(c, d) < 2000)
+            .sort((a, b) => getDistance(a, d) - getDistance(b, d))
+
+        // console.error(d.droneId, monsters);
+
+        // sort by distance
+        let visibleFishes = visibles
+            .sort((a, b) => getDistance(a, d) - getDistance(b, d))
+            .map(c => c.creatureId)
+
+        if (d.y <= 500) {
+            d.fishesFound = 0;
+            d.up = false;
+        }
+        if (d.fishesFound >=3 ) {
+            d.up = true;
+        }
+        if (samePoint(d, getBottomTarget(d.idx))) {
+            d.up = true;
         }
 
-        if (d.y >= 9000) {
-            d.goDown = false;
+        // go
+
+        let light = false;
+
+        if (turnId - d.lastLightTurn >= 5) {
+            light = true;
+        }
+        if (monsters.length) {
+            debug.push('MONSTER');
+            light = false;
         }
 
-        if (d.goDown) {
-            goTo.y = 9000;
-        } else {
-            goTo.y = 500;
-        }
+        let goTo = null;
 
-        let monstersWithDistance = monsters.map(m => ({...m, distance: getDistance(m, d)})).filter(m => m.distance <= 1000);
-
-        let neerestMonster = monstersWithDistance.reduce((p, monster) => {
-            if (!p || monster.distance < p.distance) {
-                return monster;
+        if (monsters.length) {
+            let monster = monsters[0];
+            // avoid monster
+            goTo = {
+                x: 30 * (d.x - monster.x),
+                y: 30 * (d.y - monster.y),
             }
-            return p;
-        }, null);
+        } else {
 
-        if (neerestMonster) {
+            if (d.up) {
+                debug.push('UP');
+                goTo = getTopTarget(d.idx);
+            } else {
+                debug.push('DOWN');
+                goTo = getBottomTarget(d.idx);
+            }
+
         }
 
-        console.log('MOVE ' + goTo.x + ' ' + goTo.y + ' 1 ' + debug.join(' '))
+        // if (d.fuirUntilTurn >= turnId) {
+        //     debug.push('FUIR');
+        //     goTo = d.fuir;
+        // }
 
-        // Write an action using console.log()
-        // To debug: console.error('Debug messages...');
+        // end
 
-        // MOVE <x> <y> <light (1|0)> | WAIT <light (1|0)>
+        if (light) {
+            debug.push('LIGHT');
+            d.lastLightTurn = turnId;
+        }
+
+        console.log('MOVE ' + goTo.x + ' ' + goTo.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
 
     }
 }
