@@ -1,130 +1,114 @@
-/**
- * Score points by scanning valuable fish faster than your opponent.
- **/
+// if (!readline) { function readline() { } }
 
-let creatures = [];
-
-const creatureCount = parseInt(readline());
-for (let i = 0; i < creatureCount; i++) {
-    var inputs = readline().split(' ');
-    const creatureId = parseInt(inputs[0]);
-    const color = parseInt(inputs[1]);
-    const type = parseInt(inputs[2]);
-
-    creatures[creatureId] = {creatureId, color, type};
+const game = {
+    turnId: 0,
+    myDrones: [],
+    creaturesMetas: [],
+    creaturesVisibles: [],
+    creaturesScanned: [],
+    radars: [],
 }
 
-let turnId = 0;
-
-function getDistance(p1, p2) {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-}
-
-function samePoint(p1, p2) {
-    return p1.x === p2.x && p1.y === p2.y;
-}
-
-function bestTargetAvoiding(d, target, monster) {
-
-    const A = { x: d.x, y: d.y };
-    const B = { x: monster.x, y: monster.y };
-
-    const newB = {
-        x: B.x + 540 * (A.x - B.x) / getDistance(A, B),
-        y: B.y + 540 * (A.y - B.y) / getDistance(A, B),
-    }
-
-    console.error('newB', newB);
-
-    let best = null;
-    for (let angle = 0; angle < 360; angle++) {
-        const D = {
-            x: d.x + 600 * Math.cos(angle),
-            y: d.y + 600 * Math.sin(angle),
+let fn = {
+    getDistance: (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),
+    samePoint: (p1, p2) => p1.x === p2.x && p1.y === p2.y,
+    radarDirectionToPoint: function (radar) {
+        switch (radar) {
+            case 'TL': return {x: 0, y: 0};
+            case 'TR': return {x: 10000, y: 0};
+            case 'BR': return {x: 10000, y: 10000};
+            case 'BL': return {x: 0, y: 10000};
         }
+    },
+    reversePoint: function(p) {
+        return { x: -p.x, y: -p.y, }
+    },
+    toRadians: (degrees) => degrees * Math.PI / 180,
+    toDegrees: (radians)  => radians * 180 / Math.PI,
+    cos: (degrees) => Math.cos(fn.toRadians(degrees)),
+    sin: (degrees) =>  Math.sin(fn.toRadians(degrees)),
+    angleTo: (from, to) => fn.toDegrees(Math.atan2(to.y - from.y, to.x - from.x)),
+    forward: (p, angle, dist=10000) => ({
+        x: Math.round(p.x + fn.cos(angle) * dist),
+        y: Math.round(p.y + fn.sin(angle) * dist),
+    }),
+    wiggle: (angle, maxAngle) => fn.moduloAngle(angle + (Math.random() * maxAngle) - (Math.random() * maxAngle)),
+    moduloAngle: (angle) => (angle % 360) > 0 ? (angle % 360) : (angle % 360) + 360,
+    substrateAngles(h1, h2) {
+        if (h1 < 0 || h1 >= 360) {
+            h1 = (h1 % 360 + 360) % 360;
+        }
+        if (h2 < 0 || h2 >= 360) {
+            h2 = (h2 % 360 + 360) % 360;
+        }
+        var diff = h1 - h2;
+        if (diff > -180 && diff <= 180) {
+            return diff;
+        } else if (diff > 0) {
+            return diff - 360;
+        } else {
+            return diff + 360;
+        }
+    }
+}
 
-        if (getDistance(D, newB) > 540) {
-            if (!best || getDistance(D, target) < getDistance(best, target) ) {
-                best = D;
-                console.error('best', best);
+let fn2 = {
+    randomTarget: function() {
+        return {
+            x: Math.floor(Math.random() * 10000),
+            y: Math.floor(Math.random() * 10000),
+        }
+    },
+    bottomTarget: function(droneIdx) {
+        if (droneIdx === 0) {
+            return {
+                x: 2500,
+                y: 8000,
             }
         }
-
-    }
-
-    return {
-        x: Math.floor(best.x),
-        y: Math.floor(best.y),
-    };
-
-}
-
-function radarDirectionToPoint(radar) {
-    switch (radar) {
-        case 'TL': return {x: 0, y: 0};
-        case 'TR': return {x: 10000, y: 0};
-        case 'BR': return {x: 10000, y: 10000};
-        case 'BL': return {x: 0, y: 10000};
-    }
-}
-
-function reversePoint(point) {
-    return {
-        x: -point.x,
-        y: -point.y,
-    }
-}
-
-function randomTarget() {
-    return {
-        x: Math.floor(Math.random() * 10000),
-        y: Math.floor(Math.random() * 10000),
-    }
-}
-
-function getBottomTarget(idx) {
-    if (idx === 0) {
-        return {
-            x: 2500,
-            y: 8000,
+        else {
+            return {
+                x: 7500,
+                y: 8000,
+            }
         }
-    }
-    else {
-        return {
-            x: 7500,
-            y: 8000,
+    },
+    topTarget: function(droneIdx) {
+        if (droneIdx === 0) {
+            return {
+                x: 2500,
+                y: 500,
+            }
+        }
+        else {
+            return {
+                x: 7500,
+                y: 500,
+            }
         }
     }
 }
+function initGame() {
+    const creatureCount = parseInt(readline());
+    for (let i = 0; i < creatureCount; i++) {
+        var inputs = readline().split(' ');
+        const creatureId = parseInt(inputs[0]);
+        const color = parseInt(inputs[1]);
+        const type = parseInt(inputs[2]);
 
-function getTopTarget(idx) {
-    if (idx === 0) {
-        return {
-            x: 2500,
-            y: 500,
-        }
-    }
-    else {
-        return {
-            x: 7500,
-            y: 500,
-        }
+        game.creaturesMetas[creatureId] = {creatureId, color, type};
     }
 }
 
-let myDrones = [];
+function updateGame() {
 
-// game loop
-while (true) {
-
-    turnId++;
-    let radars = [];
+    game.turnId++;
 
     const myScore = parseInt(readline());
     const foeScore = parseInt(readline());
-    const myScanCount = parseInt(readline());
 
-    // Créatures scannées et remontées
+    // Créatures validées
+    const myScanCount = parseInt(readline());
     for (let i = 0; i < myScanCount; i++) {
         const creatureId = parseInt(readline());
     }
@@ -134,7 +118,6 @@ while (true) {
     }
 
     // Mes drones
-
     const myDroneCount = parseInt(readline());
     for (let i = 0; i < myDroneCount; i++) {
         var inputs = readline().split(' ');
@@ -144,22 +127,21 @@ while (true) {
         const emergency = parseInt(inputs[3]);
         const battery = parseInt(inputs[4]);
 
-        let d = myDrones.find(v => v.droneId === droneId);
+        let d = game.myDrones.find(v => v.droneId === droneId);
         if (d) {
             d.x = x;
             d.y = y;
             d.fishesFound = 0;
         } else {
-            myDrones.push({
+            game.myDrones.push({
                 idx: i,
                 droneId, x, y, emergency, battery,
                 up: false,
-                target: randomTarget(),
                 fishesFound: 0,
                 lastLightTurn: 0,
+                angle: 90,
             });
         }
-
 
     }
 
@@ -181,15 +163,14 @@ while (true) {
         const droneId = parseInt(inputs[0]);
         const creatureId = parseInt(inputs[1]);
 
-        let myDrone = myDrones.find(d => d.droneId === droneId);
+        let myDrone = game.myDrones.find(d => d.droneId === droneId);
         if (myDrone) {
             myDrone.fishesFound++;
         }
     }
 
     // Créatures visibles
-    let visibles = [];
-
+    game.creaturesVisibles = [];
     const visibleCreatureCount = parseInt(readline());
     for (let i = 0; i < visibleCreatureCount; i++) {
         var inputs = readline().split(' ');
@@ -199,8 +180,8 @@ while (true) {
         const vx = parseInt(inputs[3]);
         const vy = parseInt(inputs[4]);
 
-        let creature = creatures[creatureId];
-        visibles.push({ ...creature, x, y, vx, vy });
+        let creature = game.creaturesMetas[creatureId];
+        game.creaturesVisibles.push({ ...creature, x, y, vx, vy });
     }
 
     const radarBlipCount = parseInt(readline());
@@ -210,80 +191,78 @@ while (true) {
         const creatureId = parseInt(inputs[1]);
         const radar = inputs[2];
 
-        let creature = creatures[creatureId];
-        radars.push({
+        let creature = game.creaturesMetas[creatureId];
+        game.radars.push({
             ...creature,
             droneId,
             direction: radar,
         })
     }
+}
 
-    for (let d of myDrones) {
+initGame();
 
+while (true) {
+
+    updateGame();
+
+    for (let d of game.myDrones) {
 
         let debug = [];
 
-        let monsters = visibles
+        let monsters = game.creaturesVisibles
             .filter(c => c.type === -1)
-            .filter(c => getDistance(c, d) < 2000)
-            .sort((a, b) => getDistance(a, d) - getDistance(b, d))
+            .filter(c => fn.getDistance(c, d) < 2000)
+            .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
 
-        let visibleFishes = visibles
-            .sort((a, b) => getDistance(a, d) - getDistance(b, d))
+        let visibleFishes = game.creaturesVisibles
+            .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
+            .filter(c => fn.getDistance(c, d) < 2000)
             .map(c => c.creatureId)
 
         if (d.y <= 500) {
             d.fishesFound = 0;
             d.up = false;
+            d.angle = 90;
         }
-        if (d.fishesFound >=3 ) {
+        if (d.fishesFound >= 3) {
             d.up = true;
+            d.angle = 270;
         }
-        if (samePoint(d, getBottomTarget(d.idx))) {
+        if (d.y > 9000) {
             d.up = true;
+            d.angle = 270;
         }
 
-        // go
+        d.angle = fn.wiggle(d.angle, 45);
+
+        if (monsters.length) {
+            let monster = monsters[0];
+            let monsterAngle = fn.angleTo(monster, d);
+            // fn.substrateAngles(d.angle, monsterAngle);
+            d.angle = fn.moduloAngle(monsterAngle);
+            debug.push('M' + monsterAngle);
+        }
 
         let light = false;
 
-        if (turnId - d.lastLightTurn >= 5) {
+        // On allume la light si ça fait longtemps
+        if (game.turnId - d.lastLightTurn >= 4) {
             if (d.y > 2000) {
                 light = true;
             }
         }
-        if (monsters.length) {
-            debug.push('MONSTER');
-            light = false;
-        }
 
         let goTo = null;
 
-        if (monsters.length) {
-            let monster = monsters[0];
-            goTo = bestTargetAvoiding(d, getBottomTarget(d.idx), monster);
+        if (false) {
         } else {
-
-            if (d.up) {
-                debug.push('UP');
-                goTo = getTopTarget(d.idx);
-            } else {
-                debug.push('DOWN');
-                goTo = getBottomTarget(d.idx);
-            }
-
+            goTo = fn.forward(d, d.angle);
         }
-
-        // if (d.fuirUntilTurn >= turnId) {
-        //     debug.push('FUIR');
-        //     goTo = d.fuir;
-        // }
-
-        // end
 
         if (light) {
             debug.push('LIGHT');
-            d.lastLightTurn = turnId;
+            d.lastLightTurn = game.turnId;
         }
 
         console.log('MOVE ' + goTo.x + ' ' + goTo.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
