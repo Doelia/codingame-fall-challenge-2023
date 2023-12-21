@@ -24,6 +24,41 @@ function samePoint(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
 }
 
+function bestTargetAvoiding(d, target, monster) {
+
+    const A = { x: d.x, y: d.y };
+    const B = { x: monster.x, y: monster.y };
+
+    const newB = {
+        x: B.x + 540 * (A.x - B.x) / getDistance(A, B),
+        y: B.y + 540 * (A.y - B.y) / getDistance(A, B),
+    }
+
+    console.error('newB', newB);
+
+    let best = null;
+    for (let angle = 0; angle < 360; angle++) {
+        const D = {
+            x: d.x + 600 * Math.cos(angle),
+            y: d.y + 600 * Math.sin(angle),
+        }
+
+        if (getDistance(D, newB) > 540) {
+            if (!best || getDistance(D, target) < getDistance(best, target) ) {
+                best = D;
+                console.error('best', best);
+            }
+        }
+
+    }
+
+    return {
+        x: Math.floor(best.x),
+        y: Math.floor(best.y),
+    };
+
+}
+
 function radarDirectionToPoint(radar) {
     switch (radar) {
         case 'TL': return {x: 0, y: 0};
@@ -193,9 +228,6 @@ while (true) {
             .filter(c => getDistance(c, d) < 2000)
             .sort((a, b) => getDistance(a, d) - getDistance(b, d))
 
-        // console.error(d.droneId, monsters);
-
-        // sort by distance
         let visibleFishes = visibles
             .sort((a, b) => getDistance(a, d) - getDistance(b, d))
             .map(c => c.creatureId)
@@ -216,7 +248,9 @@ while (true) {
         let light = false;
 
         if (turnId - d.lastLightTurn >= 5) {
-            light = true;
+            if (d.y > 2000) {
+                light = true;
+            }
         }
         if (monsters.length) {
             debug.push('MONSTER');
@@ -227,11 +261,7 @@ while (true) {
 
         if (monsters.length) {
             let monster = monsters[0];
-            // avoid monster
-            goTo = {
-                x: 30 * (d.x - monster.x),
-                y: 30 * (d.y - monster.y),
-            }
+            goTo = bestTargetAvoiding(d, getBottomTarget(d.idx), monster);
         } else {
 
             if (d.up) {
