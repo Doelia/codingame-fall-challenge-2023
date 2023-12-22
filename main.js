@@ -29,6 +29,17 @@ let fn = {
     toDegrees: (radians)  => radians * 180 / Math.PI,
     cos: (degrees) => Math.cos(fn.toRadians(degrees)),
     sin: (degrees) =>  Math.sin(fn.toRadians(degrees)),
+    turnAtMost(angle, turn, max=360) {
+        if (Math.abs(turn) > max) {
+            return angle + (turn > 0 ? max : -max);
+        } else {
+            return angle + turn;
+        }
+    },
+    moveToAngleAtMost(angle, angleTarget, max=360) {
+        let sub = fn.substrateAngles(angleTarget, angle);
+        return fn.turnAtMost(angle, sub, max);
+    },
     angleTo: (from, to) => fn.toDegrees(Math.atan2(to.y - from.y, to.x - from.x)),
     forward: (p, angle, dist=10000) => ({
         x: Math.round(p.x + fn.cos(angle) * dist),
@@ -55,45 +66,20 @@ let fn = {
 }
 
 let fn2 = {
-    randomTarget: function() {
-        return {
-            x: Math.floor(Math.random() * 10000),
-            y: Math.floor(Math.random() * 10000),
-        }
-    },
-    bottomTarget: function(droneIdx) {
-        if (droneIdx === 0) {
-            return {
-                x: 2500,
-                y: 8000,
+    sortRadars(radars) {
+        let monsterPerDirection = { TL: 0, TR: 0, BR: 0, BL: 0, };
+        for (let r of radars) {
+            if (game.creaturesMetas[r.creatureId].type === -1) {
+                monsterPerDirection[r.direction]++;
             }
         }
-        else {
-            return {
-                x: 7500,
-                y: 8000,
-            }
-        }
-    },
-    topTarget: function(droneIdx) {
-        if (droneIdx === 0) {
-            return {
-                x: 2500,
-                y: 500,
-            }
-        }
-        else {
-            return {
-                x: 7500,
-                y: 500,
-            }
-        }
+        return radars.sort((a, b) => monsterPerDirection[a.direction] - monsterPerDirection[b.direction]);
     }
 }
 function initGame() {
     const creatureCount = parseInt(readline());
     for (let i = 0; i < creatureCount; i++) {
-        var inputs = readline().split(' ');
+        const inputs = readline().split(' ');
         const creatureId = parseInt(inputs[0]);
         const color = parseInt(inputs[1]);
         const type = parseInt(inputs[2]);
@@ -220,11 +206,10 @@ while (true) {
 
     updateGame();
 
-    console.error('radars', game.radars.map(v => v.creatureId));
-
     for (let d of game.myDrones) {
         if (d.y <= 500) {
             d.creaturesScanned = [];
+            d.idCreatureTarget = null;
         }
     }
 
@@ -236,9 +221,7 @@ while (true) {
 
     for (let d of game.myDrones) {
 
-        console.error('scanned', d.droneId, d.creaturesScanned);
         let debug = [];
-
 
         let monsters = game.creaturesVisibles
             .filter(c => c.type === -1)
@@ -250,34 +233,37 @@ while (true) {
             .filter(c => fn.getDistance(c, d) < 2000)
             .map(c => c.creatureId)
 
+        let radarsSorted = fn2.sortRadars(game.radars.filter(r => r.droneId === d.droneId));
 
-        let toCatch = game.radars
-            .filter(r => r.droneId === d.droneId)
+        let toCatch = radarsSorted
             .filter(r => game.creaturesMetas[r.creatureId].color !== -1)
             .filter(r => !allScanned.includes(r.creatureId))
             .filter(r => !game.myDrones.filter(v => v.droneId !== d.droneId).map(v => v.idCreatureTarget).includes(r.creatureId)) // Pas déjà pris par un autre drone
-            .sort(() => Math.random()); // TODO plutot trier par là ou il y a  le moins de monstres
 
         if (toCatch[0]) {
             if (
                 !d.idCreatureTarget // Plus de target
+                // || monsters.length > 0 // il y a un monstre
                 || allScanned.includes(d.idCreatureTarget) // il a été scanné
                 || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
             ) {
+                debug.push('NT=' + toCatch[0]?.creatureId);
                 d.idCreatureTarget = toCatch[0]?.creatureId;
             }
-        } else {
-            d.angle = 270;
         }
 
         debug.push('T=' + d.idCreatureTarget);
 
         let radarOfTarget = toCatch.find(r => r.creatureId === d.idCreatureTarget);
         if (radarOfTarget) {
-            d.angle = fn.moduloAngle(fn.radarDirectionToAngle(radarOfTarget.direction));
+            let angleToTarget = fn.radarDirectionToAngle(radarOfTarget.direction);
+            d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
         }
 
-        if (d.creaturesScanned.length >= (game.nMonsters < 6 ? 3 : 2)) { // TODO tester avec 2
+        if (
+            !toCatch[0] // Plus rien à attraper
+            || d.creaturesScanned.length >= (game.nMonsters < 6 ? 3 : 2) // On a scanné assez de créatures
+        ) {
             debug.push('UP');
             d.angle = 270;
         }
@@ -287,7 +273,7 @@ while (true) {
         if (monsters.length) {
             let monster = monsters[0];
             let monsterAngle = fn.angleTo(monster, d);
-            d.angle = fn.moduloAngle(monsterAngle);
+            d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, monsterAngle, 45));
         }
 
         let light = false;
