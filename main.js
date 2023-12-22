@@ -1,5 +1,7 @@
 // if (!readline) { function readline() { } }
 
+// seed 6 poissons : seed=1404408027432733000
+
 const game = {
     turnId: 0,
     myDrones: [],
@@ -74,6 +76,38 @@ let fn2 = {
             }
         }
         return radars.sort((a, b) => monsterPerDirection[a.direction] - monsterPerDirection[b.direction]);
+    },
+
+    bestAngleAvoiding(monsters, d, angleWanted) {
+
+        // ILs sont dangereux s'ils sont capables de me manger au prochain tour
+        function getDangerours(monsters, d, angle) {
+            return monsters.filter(monster => {
+                for (let i = 0; i < 100; i++) {
+                    let monsterAngle = fn.angleTo(monster, d);
+                    let nextPositionMonster = fn.forward(monster, monsterAngle, i/100 * 540);
+                    let nextMyPosition = fn.forward(d, angle, i/100 * 600);
+                    let distance = fn.getDistance(nextPositionMonster, nextMyPosition);
+                    if (distance <= 500) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        for (let i = 0; i <= 180; i++) {
+            let angle = fn.moduloAngle(angleWanted + i);
+            if (getDangerours(monsters, d, angle).length === 0) {
+                return angle;
+            }
+            angle = fn.moduloAngle(angleWanted - i);
+            if (getDangerours(monsters, d, angle).length === 0) {
+                return angle;
+            }
+        }
+
+        return angleWanted;
     }
 }
 function initGame() {
@@ -223,10 +257,11 @@ while (true) {
 
         let debug = [];
 
-        let monsters = game.creaturesVisibles
+        let monstersVisibles = game.creaturesVisibles
             .filter(c => c.type === -1)
             .filter(c => fn.getDistance(c, d) < 2000)
             .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
+
 
         let visibleFishes = game.creaturesVisibles
             .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
@@ -262,7 +297,7 @@ while (true) {
 
         if (
             !toCatch[0] // Plus rien à attraper
-            || d.creaturesScanned.length >= (game.nMonsters < 6 ? 3 : 2) // On a scanné assez de créatures
+            // || d.creaturesScanned.length >= 5 // On a scanné assez de créatures
         ) {
             debug.push('UP');
             d.angle = 270;
@@ -270,11 +305,7 @@ while (true) {
 
         debug.push('F=' + d.creaturesScanned.length);
 
-        if (monsters.length) {
-            let monster = monsters[0];
-            let monsterAngle = fn.angleTo(monster, d);
-            d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, monsterAngle, 45));
-        }
+        d.angle = fn2.bestAngleAvoiding(monstersVisibles, d, d.angle);
 
         let light = false;
 
