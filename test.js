@@ -29,9 +29,9 @@ let fn = {
         return fn.turnAtMost(angle, sub, max);
     },
     angleTo: (from, to) => fn.toDegrees(Math.atan2(to.y - from.y, to.x - from.x)),
-    forward: (p, angle, dist=10000) => ({
-        x: Math.round(p.x + fn.cos(angle) * dist),
-        y: Math.round(p.y + fn.sin(angle) * dist),
+    forward: (p, angle, dist= 600) => ({
+        x: Math.max(0, Math.min(9999, Math.round(p.x + fn.cos(angle) * dist))),
+        y: Math.max(0, Math.min(9999, Math.round(p.y + fn.sin(angle) * dist))),
     }),
     wiggle: (angle, maxAngle) => fn.moduloAngle(angle + (Math.random() * maxAngle) - (Math.random() * maxAngle)),
     moduloAngle: (angle) => (angle % 360) > 0 ? (angle % 360) : (angle % 360) + 360,
@@ -50,6 +50,91 @@ let fn = {
         } else {
             return diff + 360;
         }
+    },
+    inGameLimits(position, paddingX=800) {
+        return position.x > paddingX && position.x < 10000 - paddingX;
+    }
+}
+
+let fn2 = {
+    sortRadars(radars) {
+        let monsterPerDirection = { TL: 0, TR: 0, BR: 0, BL: 0, };
+        for (let r of radars) {
+            if (game.creaturesMetas.get(r.creatureId).type === -1) {
+                monsterPerDirection[r.direction]++;
+            }
+        }
+        return radars.sort((a, b) => monsterPerDirection[a.direction] - monsterPerDirection[b.direction]);
+    },
+
+    getFutureMonsterPosition(monster, projection=1) {
+        return fn.forward(monster, monster.nextAngle, projection*monster.nextDistance);
+    },
+
+    // TODO essayer de rester un peu plus loin, si possible
+    bestAngleAvoiding(monsters, d, angleWanted) {
+
+        function isGoodAngle(angle) {
+            if (getDangerours(monsters, d, angle).length > 0) {
+                return false;
+            }
+            let myNextPosition = fn.forward(d, angle, 600);
+            if (!fn.inGameLimits(myNextPosition)) {
+                // return false;
+            }
+            return true;
+        }
+
+        // ILs sont dangereux s'ils sont capables de me manger au prochain tour
+        function getDangerours(monsters, d, angle) {
+            let PAS = 100;
+            return monsters.filter(monster => {
+                for (let i = 0; i <= PAS; i++) {
+                    let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
+                    let nextPositionMonster = fn2.getFutureMonsterPosition(monster, i/PAS)
+                    let distance = fn.getDistance(nextPositionMonster, nextMyPosition);
+                    if (distance <= 500) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        for (let i = 0; i <= 180; i++) {
+            let angle = fn.moduloAngle(angleWanted + i);
+            if (isGoodAngle(angle)) {
+                return angle;
+            }
+            angle = fn.moduloAngle(angleWanted - i);
+            if (isGoodAngle(angle)) {
+                return angle;
+            }
+        }
+
+        return angleWanted;
+    },
+    // retourne 'L' ou 'R' s'il la créature est à gauche ou a droite du drone
+    getSideOfFishOnRadars(creatureId, droneId) {
+        let radar = game.radars.find(r => r.creatureId === creatureId && r.droneId === droneId)
+        if (!radar) return '?';
+        return radar.direction.slice(-1);
+    },
+    getFishesWithSides() {
+        return [...game.creaturesMetas.values()].map(c => {
+            let side1 = fn2.getSideOfFishOnRadars(c.creatureId, game.myDrones[0].droneId);
+            let side2 = fn2.getSideOfFishOnRadars(c.creatureId, game.myDrones[1].droneId);
+            if (side1 !== side2) {
+                return {...c, side: 'MIDDLE'};
+            }
+            if (side1 === 'L' && side2 === 'L') {
+                return {...c, side: 'LEFT'};
+            }
+            if (side1 === 'R' && side2 === 'R') {
+                return {...c, side: 'RIGHT'};
+            }
+            return {...c, side: '??'};
+        });
     }
 }
 
@@ -59,3 +144,17 @@ console.log(fn.moduloAngle(fn.turnAtMost(350, 40, 20)), 10);
 console.log(fn.moduloAngle(fn.moveToAngleAtMost(0, 90, 45)), 45);
 console.log(fn.moduloAngle(fn.moveToAngleAtMost(90, 0, 45)), 45);
 console.log(fn.moduloAngle(fn.moveToAngleAtMost(90, -20, 360)), 340);
+
+let m = {
+    x: 6441,
+    y: 6423,
+};
+
+let d = {
+    x: 6230,
+    y: 6879,
+}
+
+m.nextAngle =  fn.moduloAngle(fn.angleTo(m, d));
+m.nextDistance = 540;
+console.log(fn.forward(m, m.nextAngle, m.nextDistance));

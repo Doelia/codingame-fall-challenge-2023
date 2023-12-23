@@ -65,6 +65,9 @@ let fn = {
         } else {
             return diff + 360;
         }
+    },
+    inGameLimits(position, paddingX=800) {
+        return position.x > paddingX && position.x < 10000 - paddingX;
     }
 }
 
@@ -79,15 +82,23 @@ let fn2 = {
         return radars.sort((a, b) => monsterPerDirection[a.direction] - monsterPerDirection[b.direction]);
     },
 
-    // todo prendre en compte les visiblités et l'emergency
-    getFutureMonsterAngle(visibleMonster) {
-
-    },
     getFutureMonsterPosition(monster, projection=1) {
         return fn.forward(monster, monster.nextAngle, projection*monster.nextDistance);
     },
 
+    // TODO essayer de rester un peu plus loin, si possible
     bestAngleAvoiding(monsters, d, angleWanted) {
+
+        function isGoodAngle(angle) {
+            if (getDangerours(monsters, d, angle).length > 0) {
+                return false;
+            }
+            let myNextPosition = fn.forward(d, angle, 600);
+            if (!fn.inGameLimits(myNextPosition)) {
+                // return false;
+            }
+            return true;
+        }
 
         // ILs sont dangereux s'ils sont capables de me manger au prochain tour
         function getDangerours(monsters, d, angle) {
@@ -107,11 +118,11 @@ let fn2 = {
 
         for (let i = 0; i <= 180; i++) {
             let angle = fn.moduloAngle(angleWanted + i);
-            if (getDangerours(monsters, d, angle).length === 0) {
+            if (isGoodAngle(angle)) {
                 return angle;
             }
             angle = fn.moduloAngle(angleWanted - i);
-            if (getDangerours(monsters, d, angle).length === 0) {
+            if (isGoodAngle(angle)) {
                 return angle;
             }
         }
@@ -155,7 +166,7 @@ function initGame() {
     game.nMonsters = [...game.creaturesMetas.values()].filter(v => v.type === -1).length;
 }
 
-function updateGame() {
+function readInputs() {
 
     game.turnId++;
 
@@ -189,11 +200,12 @@ function updateGame() {
         if (d) {
             d.x = x;
             d.y = y;
+            d.emergency = emergency;
+            d.battery = battery;
         } else {
             game.myDrones.push({
                 idx: i,
                 droneId, x, y, emergency, battery,
-                up: false,
                 lastLightTurn: 0,
                 angle: 90,
                 idCreatureTarget: null,
@@ -221,6 +233,8 @@ function updateGame() {
         if (d) {
             d.x = x;
             d.y = y;
+            d.emergency = emergency;
+            d.battery = battery;
         } else {
             game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, });
         }
@@ -274,13 +288,7 @@ function updateGame() {
     }
 }
 
-initGame();
-
-while (true) {
-
-    updateGame();
-
-    let fishesWithSides = fn2.getFishesWithSides();
+function compute() {
 
     for (let d of game.myDrones) {
         if (d.y <= 500) {
@@ -308,11 +316,26 @@ while (true) {
         } else {
             m.nextAngle =  fn.moduloAngle(fn.angleTo(m, neerestDrone));
             m.nextDistance = 540;
+            m.neerestDrone = neerestDrone.droneId;
+            console.error('nerest drone', neerestDrone);
         }
+
+        console.error('monster', m, fn.forward(m, m.nextAngle, m.nextDistance));
 
     }
 
-    let allScanned = [
+}
+
+initGame();
+
+while (true) {
+
+    readInputs();
+    compute();
+
+    let fishesWithSides = fn2.getFishesWithSides();
+
+    let dontScanIt = [
         ...game.myDrones[0].creaturesScanned,
         ...game.myDrones[1].creaturesScanned,
         ...game.creaturesValidated,
@@ -338,26 +361,33 @@ while (true) {
         let dMate = game.myDrones.find(v => v.droneId !== d.droneId);
         let bestOrderRadar = d.x < dMate.x ? ['LEFT', 'MIDDLE', 'RIGHT'] : ['RIGHT', 'MIDDLE', 'LEFT'];
 
+        // Poissons à scanner
         let toCatch = game.radars
             .filter(r => r.droneId === d.droneId)
             .filter(r => game.creaturesMetas.get(r.creatureId).color !== -1)
-            .filter(r => !allScanned.includes(r.creatureId))
+            .filter(r => !dontScanIt.includes(r.creatureId))
             .filter(r => !game.myDrones.filter(v => v.droneId !== d.droneId).map(v => v.idCreatureTarget).includes(r.creatureId)) // Pas déjà pris par un autre drone
             .sort((a, b) =>
                 bestOrderRadar.indexOf(fishesWithSides.find(f => f.creatureId === a.creatureId).side) -
                 bestOrderRadar.indexOf(fishesWithSides.find(f => f.creatureId === b.creatureId).side)
             )
 
-        if (toCatch[0]) {
-            if (
-                !d.idCreatureTarget // Plus de target
-                // || monsters.length > 0 // il y a un monstre
-                || allScanned.includes(d.idCreatureTarget) // il a été scanné
-                || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
-            ) {
+        // Changer de target
+        if (
+            !d.idCreatureTarget // Plus de target
+            || dontScanIt.includes(d.idCreatureTarget)
+            || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
+        ) {
+            if (toCatch[0]) {
                 // debug.push('NT=' + toCatch[0]?.creatureId);
                 d.idCreatureTarget = toCatch[0]?.creatureId;
             }
+        }
+
+        if (d.y <= 2000) {
+            d.idCreatureTarget = null;
+            d.angle = 90;
+            debug.push('DOWN');
         }
 
         debug.push('T=' + d.idCreatureTarget);
@@ -390,11 +420,6 @@ while (true) {
         // SENDING
 
         let goTo = fn.forward(d, d.angle, 600);
-
-        // for (let monsterVisible of monstersVisibles) {
-        //     let position = fn2.getFutureMonsterPosition(monsterVisible);
-        //     debug.push('M', position.x, position.y, monsterVisible.nextAngle);
-        // }
 
         if (light) {
             debug.push('LIGHT');
