@@ -17,13 +17,32 @@ const game = {
 let fn = {
     getDistance: (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),
     samePoint: (p1, p2) => p1.x === p2.x && p1.y === p2.y,
-    radarDirectionToAngle: function (radar) {
-        switch (radar) {
-            case 'TL': return 45 + 90*2;
-            case 'TR': return 45 + 90*3;
-            case 'BR': return 45;
-            case 'BL': return 45 + 90;
+    fishTypeToMinMaxY: (fishType) => {
+        if (fishType === 0) return [2500, 5000];
+        if (fishType === 1) return [5000, 7500];
+        if (fishType === 2) return [7500, 10000];
+    },
+    translatePositionToFishType(position, fishType) {
+        const [min, max] = fn.fishTypeToMinMaxY(fishType);
+        return {
+            x: position.x,
+            y: Math.min(Math.max(position.y, min), max),
         }
+    },
+    radarDirectionToTarget: function(direction) {
+        const PADDING = 500;
+        switch (direction) {
+            case 'TL': return {x: PADDING, y: 0 };
+            case 'TR': return {x: 10000 - PADDING, y: 0};
+            case 'BR': return {x: 10000 - PADDING, y: 10000};
+            case 'BL': return {x: PADDING, y: 10000};
+        }
+    },
+    radarToAngle: function (d, radar) {
+        let target = fn.radarDirectionToTarget(radar.direction);
+        let fishType = game.creaturesMetas.get(radar.creatureId).type;
+        target = fn.translatePositionToFishType(target, fishType);
+        return fn.angleTo(d, target);
     },
     reversePoint: function(p) {
         return { x: -p.x, y: -p.y, }
@@ -317,10 +336,10 @@ function compute() {
             m.nextAngle =  fn.moduloAngle(fn.angleTo(m, neerestDrone));
             m.nextDistance = 540;
             m.neerestDrone = neerestDrone.droneId;
-            console.error('nerest drone', neerestDrone);
+            // console.error('nerest drone', neerestDrone);
         }
 
-        console.error('monster', m, fn.forward(m, m.nextAngle, m.nextDistance));
+        // console.error('monster', m, fn.forward(m, m.nextAngle, m.nextDistance));
 
     }
 
@@ -394,7 +413,7 @@ while (true) {
 
         let radarOfTarget = toCatch.find(r => r.creatureId === d.idCreatureTarget);
         if (radarOfTarget) {
-            let angleToTarget = fn.radarDirectionToAngle(radarOfTarget.direction);
+            let angleToTarget = fn.radarToAngle(d, radarOfTarget);
             d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
         }
 
