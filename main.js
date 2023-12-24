@@ -38,10 +38,13 @@ let fn = {
             case 'BL': return {x: PADDING, y: 10000};
         }
     },
-    radarToAngle: function (d, radar) {
+    radarToPosition: function (d, radar) {
         let target = fn.radarDirectionToTarget(radar.direction);
         let fishType = game.creaturesMetas.get(radar.creatureId).type;
-        target = fn.translatePositionToFishType(target, fishType);
+        return fn.translatePositionToFishType(target, fishType);
+    },
+    radarToAngle: function (d, radar) {
+        const target = fn.radarToPosition(d, radar);
         return fn.angleTo(d, target);
     },
     reversePoint: function(p) {
@@ -85,9 +88,6 @@ let fn = {
             return diff + 360;
         }
     },
-    inGameLimits(position, paddingX=800) {
-        return position.x > paddingX && position.x < 10000 - paddingX;
-    }
 }
 
 let fn2 = {
@@ -105,16 +105,11 @@ let fn2 = {
         return fn.forward(monster, monster.nextAngle, projection*monster.nextDistance);
     },
 
-    // TODO essayer de rester un peu plus loin, si possible
     bestAngleAvoiding(monsters, d, angleWanted) {
 
         function isGoodAngle(angle) {
             if (getDangerours(monsters, d, angle).length > 0) {
                 return false;
-            }
-            let myNextPosition = fn.forward(d, angle, 600);
-            if (!fn.inGameLimits(myNextPosition)) {
-                // return false;
             }
             return true;
         }
@@ -127,7 +122,7 @@ let fn2 = {
                     let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
                     let nextPositionMonster = fn2.getFutureMonsterPosition(monster, i/PAS)
                     let distance = fn.getDistance(nextPositionMonster, nextMyPosition);
-                    if (distance <= 500) {
+                    if (distance <= 510) {
                         return true;
                     }
                 }
@@ -148,28 +143,6 @@ let fn2 = {
 
         return angleWanted;
     },
-    // retourne 'L' ou 'R' s'il la créature est à gauche ou a droite du drone
-    getSideOfFishOnRadars(creatureId, droneId) {
-        let radar = game.radars.find(r => r.creatureId === creatureId && r.droneId === droneId)
-        if (!radar) return '?';
-        return radar.direction.slice(-1);
-    },
-    getFishesWithSides() {
-        return [...game.creaturesMetas.values()].map(c => {
-            let side1 = fn2.getSideOfFishOnRadars(c.creatureId, game.myDrones[0].droneId);
-            let side2 = fn2.getSideOfFishOnRadars(c.creatureId, game.myDrones[1].droneId);
-            if (side1 !== side2) {
-                return {...c, side: 'MIDDLE'};
-            }
-            if (side1 === 'L' && side2 === 'L') {
-                return {...c, side: 'LEFT'};
-            }
-            if (side1 === 'R' && side2 === 'R') {
-                return {...c, side: 'RIGHT'};
-            }
-            return {...c, side: '??'};
-        });
-    }
 }
 function initGame() {
     const creatureCount = parseInt(readline());
@@ -229,6 +202,7 @@ function readInputs() {
                 angle: 90,
                 idCreatureTarget: null,
                 creaturesScanned: [],
+                goBottom: true,
             });
         }
 
@@ -352,8 +326,6 @@ while (true) {
     readInputs();
     compute();
 
-    let fishesWithSides = fn2.getFishesWithSides();
-
     let dontScanIt = [
         ...game.myDrones[0].creaturesScanned,
         ...game.myDrones[1].creaturesScanned,
@@ -369,27 +341,17 @@ while (true) {
             .filter(c => fn.getDistance(c, d) < 2000)
             .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
 
-
-        let visibleFishes = game.creaturesVisibles
-            .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
-            .filter(c => fn.getDistance(c, d) < 2000)
-            .map(c => c.creatureId)
-
-
-
-        let dMate = game.myDrones.find(v => v.droneId !== d.droneId);
-        let bestOrderRadar = d.x < dMate.x ? ['LEFT', 'MIDDLE', 'RIGHT'] : ['RIGHT', 'MIDDLE', 'LEFT'];
-
         // Poissons à scanner
         let toCatch = game.radars
             .filter(r => r.droneId === d.droneId)
             .filter(r => game.creaturesMetas.get(r.creatureId).color !== -1)
             .filter(r => !dontScanIt.includes(r.creatureId))
             .filter(r => !game.myDrones.filter(v => v.droneId !== d.droneId).map(v => v.idCreatureTarget).includes(r.creatureId)) // Pas déjà pris par un autre drone
-            .sort((a, b) =>
-                bestOrderRadar.indexOf(fishesWithSides.find(f => f.creatureId === a.creatureId).side) -
-                bestOrderRadar.indexOf(fishesWithSides.find(f => f.creatureId === b.creatureId).side)
-            )
+            .sort((a, b) => {
+                let pa = fn.radarToPosition(d, a);
+                let pb = fn.radarToPosition(d, b);
+                return fn.getDistance(pa, d) - fn.getDistance(pb, d);
+            })
 
         // Changer de target
         if (
@@ -398,12 +360,15 @@ while (true) {
             || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
         ) {
             if (toCatch[0]) {
-                // debug.push('NT=' + toCatch[0]?.creatureId);
                 d.idCreatureTarget = toCatch[0]?.creatureId;
             }
         }
 
-        if (d.y <= 2000) {
+        if (d.y > 7000) {
+            d.goBottom = false;
+        }
+
+        if (d.goBottom) {
             d.idCreatureTarget = null;
             d.angle = 90;
             debug.push('DOWN');
@@ -424,13 +389,12 @@ while (true) {
             d.angle = 270;
         }
 
-        // TODO debug 1671269212516002000
         d.angle = fn2.bestAngleAvoiding(monstersVisibles, d, d.angle);
 
         let light = false;
 
         // On allume la light si ça fait longtemps
-        if (game.turnId - d.lastLightTurn >= 4 && !upMode) {
+        if (game.turnId - d.lastLightTurn >= 2 && !upMode) {
             if (d.y > 2000) {
                 light = true;
             }
