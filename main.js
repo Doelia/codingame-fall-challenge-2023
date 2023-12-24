@@ -1,7 +1,3 @@
-// if (!readline) { function readline() { } }
-
-// seed 6 poissons : seed=1404408027432733000
-
 const game = {
     turnId: 0,
     myDrones: [],
@@ -202,7 +198,7 @@ function readInputs() {
                 angle: 90,
                 idCreatureTarget: null,
                 creaturesScanned: [],
-                goBottom: true,
+                state: 'DOWN',
             });
         }
 
@@ -353,48 +349,67 @@ while (true) {
                 return fn.getDistance(pa, d) - fn.getDistance(pb, d);
             })
 
-        // Changer de target
-        if (
-            !d.idCreatureTarget // Plus de target
-            || dontScanIt.includes(d.idCreatureTarget)
-            || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
-        ) {
-            if (toCatch[0]) {
-                d.idCreatureTarget = toCatch[0]?.creatureId;
-            }
+        // compute state
+
+        if (d.state === 'DOWN' && d.y >= 8000) {
+            d.state = 'UP';
         }
 
-        if (d.y > 7000) {
-            d.goBottom = false;
+        if (d.state === 'UP' && d.y <= 500) {
+            d.state = 'SEARCH';
+            d.angle = 90;
         }
 
-        if (d.goBottom) {
+        if (!toCatch.length) {
+            d.state = 'FINISHED';
+        }
+
+        // Compute angle
+
+        if (d.state === 'DOWN') {
             d.idCreatureTarget = null;
             d.angle = 90;
             debug.push('DOWN');
         }
 
-        debug.push('T=' + d.idCreatureTarget);
-
-        let radarOfTarget = toCatch.find(r => r.creatureId === d.idCreatureTarget);
-        if (radarOfTarget) {
-            let angleToTarget = fn.radarToAngle(d, radarOfTarget);
-            d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
+        if (d.state === 'UP') {
+            d.idCreatureTarget = null;
+            d.angle = 270;
+            debug.push('UP')
         }
 
-        let upMode = !toCatch[0];
+        if (d.state === 'SEARCH') {
+            if (
+                !d.idCreatureTarget // Plus de target
+                || dontScanIt.includes(d.idCreatureTarget)
+                || !game.radars.map(v => v.creatureId).includes(d.idCreatureTarget) // on le trouve plus sur la map
+            ) {
+                if (toCatch[0]) {
+                    d.idCreatureTarget = toCatch[0]?.creatureId;
+                }
+            }
 
-        if (upMode) {
-            debug.push('UP');
+            let radarOfTarget = toCatch.find(r => r.creatureId === d.idCreatureTarget);
+            if (radarOfTarget) {
+                let angleToTarget = fn.radarToAngle(d, radarOfTarget);
+                d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
+            }
+            debug.push('T=' + d.idCreatureTarget);
+        }
+
+        if (d.state === 'FINISHED') {
+            debug.push('FINISHED');
             d.angle = 270;
         }
 
         d.angle = fn2.bestAngleAvoiding(monstersVisibles, d, d.angle);
 
+        // Compute light
+
         let light = false;
 
         // On allume la light si ça fait longtemps
-        if (game.turnId - d.lastLightTurn >= 2 && !upMode) {
+        if (game.turnId - d.lastLightTurn >= 2 && d.state !== 'FINISHED') {
             if (d.y > 2000) {
                 light = true;
             }
