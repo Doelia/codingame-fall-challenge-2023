@@ -4,11 +4,19 @@ const game = {
     vsDrones: [],
     creaturesMetas: new Map(),
     creaturesVisibles: [],
-    creaturesScanned: [],
+
     creaturesValidated: [],
+    vsCreaturesValidates: [],
+
     radars: [],
     nMonsters: 0,
+
+    myScore: 0,
+    vsScore: 0,
 }
+
+let TYPES = [0, 1, 2];
+let COLORS = [0, 1, 2, 3];
 
 let fn = {
     getDistance: (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),
@@ -87,15 +95,6 @@ let fn = {
 }
 
 let fn2 = {
-    sortRadars(radars) {
-        let monsterPerDirection = { TL: 0, TR: 0, BR: 0, BL: 0, };
-        for (let r of radars) {
-            if (game.creaturesMetas.get(r.creatureId).type === -1) {
-                monsterPerDirection[r.direction]++;
-            }
-        }
-        return radars.sort((a, b) => monsterPerDirection[a.direction] - monsterPerDirection[b.direction]);
-    },
 
     getFutureMonsterPosition(monster, projection=1) {
         return fn.forward(monster, monster.nextAngle, projection*monster.nextDistance);
@@ -139,7 +138,70 @@ let fn2 = {
 
         return angleWanted;
     },
+
+    pointOfFish(idCreature, isFirst) {
+       return (game.creaturesMetas.get(idCreature).type + 1) * (isFirst ? 2 : 1);
+    },
+
+    computePoints(validated, vsValidated) {
+
+        console.error('validated', validated);
+        let points = 0;
+
+        for (let f of validated) {
+            let {creatureId} = f;
+            const isVsValidated = vsValidated.find(v => v.creatureId === creatureId);
+            const imFirst = !isVsValidated || f.turn < isVsValidated.turn;
+            points += fn2.pointOfFish(creatureId, imFirst);
+        }
+
+        for (let type of TYPES) {
+            let metaNOfType = [...game.creaturesMetas.values()].filter(v => v.type === type).length;
+            let fishesOfType = validated.filter(v => game.creaturesMetas.get(v.creatureId).type === type);
+            let vsFishesOfType = vsValidated.filter(v => game.creaturesMetas.get(v.creatureId).type === type);
+
+            if (metaNOfType === fishesOfType.length) {
+                points += 4;
+
+                if (vsFishesOfType.length < metaNOfType) {
+                    points += 4;
+                } else {
+                    const jaiToutAuTour = Math.max(fishesOfType.map(v => v.turn));
+                    const ilAToutAuTour = Math.max(vsFishesOfType.map(v => v.turn));
+                    if (jaiToutAuTour < ilAToutAuTour) {
+                        points += 4;
+                    }
+                }
+
+            }
+        }
+
+        for (let color of COLORS) {
+            let metaNOfColor = [...game.creaturesMetas.values()].filter(v => v.color === color).length;
+            let fishesOfColor = validated.filter(v => game.creaturesMetas.get(v.creatureId).color === color);
+            let vsFishesOfColor = vsValidated.filter(v => game.creaturesMetas.get(v.creatureId).color === color);
+
+            if (metaNOfColor === fishesOfColor.length) {
+                points += 3;
+
+                if (vsFishesOfColor.length < metaNOfColor) {
+                    points += 3;
+                } else {
+                    const jaiToutAuTour = Math.max(fishesOfColor.map(v => v.turn));
+                    const ilAToutAuTour = Math.max(vsFishesOfColor.map(v => v.turn));
+                    if (jaiToutAuTour < ilAToutAuTour) {
+                        points += 3;
+                    }
+                }
+
+            }
+        }
+
+        return points;
+
+    }
 }
+
 function initGame() {
     const creatureCount = parseInt(readline());
     for (let i = 0; i < creatureCount; i++) {
@@ -158,20 +220,31 @@ function readInputs() {
 
     game.turnId++;
 
-    const myScore = parseInt(readline());
-    const foeScore = parseInt(readline());
+    game.myScore = parseInt(readline());
+    game.vsScore = parseInt(readline());
 
     // Créatures validées
     const myScanCount = parseInt(readline());
     for (let i = 0; i < myScanCount; i++) {
         const creatureId = parseInt(readline());
-        if (!game.creaturesValidated.includes(creatureId)) {
-            game.creaturesValidated.push(creatureId);
+        if (!game.creaturesValidated.map(v => v.creatureId).includes(creatureId)) {
+            game.creaturesValidated.push({
+                creatureId,
+                turn: game.turnId,
+                imFirst: game.vsCreaturesValidates.filter(v => v.creatureId === creatureId).length === 0,
+            });
         }
     }
     const foeScanCount = parseInt(readline());
     for (let i = 0; i < foeScanCount; i++) {
         const creatureId = parseInt(readline());
+        if (!game.vsCreaturesValidates.map(v => v.creatureId).includes(creatureId)) {
+            game.vsCreaturesValidates.push({
+                creatureId,
+                turn: game.turnId,
+                imFirst: game.creaturesValidated.filter(v => v.creatureId === creatureId).length === 0,
+            });
+        }
     }
 
     // Mes drones
@@ -190,6 +263,7 @@ function readInputs() {
             d.y = y;
             d.emergency = emergency;
             d.battery = battery;
+            d.creaturesScanned = [];
         } else {
             game.myDrones.push({
                 idx: i,
@@ -202,9 +276,10 @@ function readInputs() {
             });
         }
 
-        if (emergency) {
-            d.creaturesScanned = [];
-        }
+
+        // if (emergency) {
+            // d.creaturesScanned = [];
+        // }
 
     }
 
@@ -224,9 +299,14 @@ function readInputs() {
             d.y = y;
             d.emergency = emergency;
             d.battery = battery;
+            d.creaturesScanned = [];
         } else {
-            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, });
+            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [] });
         }
+
+        // if (emergency) {
+        //     d.creaturesScanned = [];
+        // }
     }
 
     // Créatures scannées
@@ -236,13 +316,8 @@ function readInputs() {
         const droneId = parseInt(inputs[0]);
         const creatureId = parseInt(inputs[1]);
 
-        let myDrone = game.myDrones.find(d => d.droneId === droneId);
-        if (myDrone) {
-            if (!myDrone.creaturesScanned.includes(creatureId)) {
-                myDrone.creaturesScanned.push(creatureId);
-            }
-        }
-
+        const d = [...game.myDrones, ...game.vsDrones].find(d => d.droneId === droneId);
+        d.creaturesScanned.push(creatureId);
     }
 
     // Créatures visibles
@@ -281,7 +356,7 @@ function compute() {
 
     for (let d of game.myDrones) {
         if (d.y <= 500) {
-            d.creaturesScanned = [];
+            // d.creaturesScanned = [];
             d.idCreatureTarget = null;
         }
     }
@@ -322,10 +397,52 @@ while (true) {
     readInputs();
     compute();
 
+    // console.error('creaturesMetas', [...game.creaturesMetas.values()]);
+    // console.error('myValidated', game.creaturesValidated);
+    // console.error('vsValidated', game.vsCreaturesValidates);
+
+    const myScans = game.myDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
+        .filter(v => !game.creaturesValidated.map(v => v.creatureId).includes(v))
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+    const vsScans = game.vsDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+    const inRadars = game.radars.map(v => v.creatureId);
+
+    let pointsIfIUpNow  = fn2.computePoints(
+        [
+            ...game.creaturesValidated,
+            ...myScans.map(id => ({creatureId: id, turn: game.turnId})),
+        ],
+        game.vsCreaturesValidates
+    );
+
+    let stay = [...game.creaturesMetas.values()]
+        .map(v => v.creatureId)
+        .filter(v => game.creaturesMetas.get(v).type !== -1)
+        .filter(v => !game.vsCreaturesValidates.map(v => v.creatureId).includes(v))
+        .filter(v => inRadars.includes(v))
+        .filter(v => !vsScans.includes(v))
+        .map(id => ({creatureId: id, turn: 200}));
+
+    let pointsIfHeUpAfterMe = fn2.computePoints(
+        [
+            ...game.vsCreaturesValidates,
+            ...vsScans.map(id => ({creatureId: id, turn: 200})),
+            ...stay,
+        ],
+        [
+            ...game.creaturesValidated,
+            ...myScans.map(id => ({creatureId: id, turn: game.turnId})),
+        ],
+    );
+
+    console.error('pointsIfIUpNow', pointsIfIUpNow, pointsIfHeUpAfterMe);
+
     let dontScanIt = [
-        ...game.myDrones[0].creaturesScanned,
-        ...game.myDrones[1].creaturesScanned,
-        ...game.creaturesValidated,
+        ...myScans,
+        ...game.creaturesValidated.map(v => v.creatureId),
     ];
 
     for (let d of game.myDrones) {
@@ -351,17 +468,21 @@ while (true) {
 
         // compute state
 
-        if (d.state === 'DOWN' && d.y >= 8000) {
-            d.state = 'UP';
-        }
-
-        if (d.state === 'UP' && d.y <= 500) {
+        if (d.state === 'DOWN' && d.y >= 7000) {
             d.state = 'SEARCH';
-            d.angle = 90;
         }
 
         if (!toCatch.length) {
             d.state = 'FINISHED';
+        }
+
+        if (d.state === 'SCORE' && d.y <= 500) {
+            d.state = 'SEARCH';
+            d.angle = 90;
+        }
+
+        if (pointsIfIUpNow > pointsIfHeUpAfterMe) {
+            d.state = 'SCORE';
         }
 
         // Compute angle
@@ -370,12 +491,6 @@ while (true) {
             d.idCreatureTarget = null;
             d.angle = 90;
             debug.push('DOWN');
-        }
-
-        if (d.state === 'UP') {
-            d.idCreatureTarget = null;
-            d.angle = 270;
-            debug.push('UP')
         }
 
         if (d.state === 'SEARCH') {
@@ -399,6 +514,11 @@ while (true) {
 
         if (d.state === 'FINISHED') {
             debug.push('FINISHED');
+            d.angle = 270;
+        }
+
+        if (d.state === 'SCORE') {
+            debug.push('SCORE' + pointsIfIUpNow + '>' + pointsIfHeUpAfterMe);
             d.angle = 270;
         }
 
