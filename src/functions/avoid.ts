@@ -1,24 +1,30 @@
 import {CreatureVisible, MyDrone} from "../types";
 import {fn} from "./utils";
-import {game} from "../main";
 import {future} from "./future";
-
-
-// TODO debug 1709671787535293000
-// TODO debug 7566632910746621000
 
 export const fnAvoid = {
 
 
     bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number) {
 
+        let PAS = 100;
+
         function isGoodAngle(angle: number) {
             return getDangerours(d, angle).length <= 0;
         }
 
+        function distanceWithNerestMonster(d, angle) {
+            let distance = 100000;
+            for (let monster of monsters) {
+                let nextMyPosition = fn.forward(d, angle);
+                let nextPositionMonster = future.getFuturePosition(monster)
+                distance = Math.min(distance, fn.getDistance(nextPositionMonster, nextMyPosition));
+            }
+            return distance;
+        }
+
         // ILs sont dangereux s'ils sont capables de me manger au prochain tour
         function getDangerours(d, angle) {
-            let PAS = 100;
             return monsters.filter(monster => {
                 for (let i = 0; i <= PAS; i++) {
                     let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
@@ -42,6 +48,8 @@ export const fnAvoid = {
                 return angle;
             }
         }
+
+        console.error("c'est mort");
 
         return angleWanted;
     },

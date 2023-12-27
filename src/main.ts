@@ -6,6 +6,7 @@ import {fnTarget} from "./functions/targets";
 import {fnAvoid} from "./functions/avoid";
 import {fnFaireFuir} from "./functions/faireFuir";
 import {future} from "./functions/future";
+import {down} from "./functions/down";
 
 export const game: Game = {
     turnId: 0,
@@ -41,6 +42,9 @@ while (1 === 1) {
         .map(future.applyNextPosition)
         .map(c => future.computeNextPosition(c, game));
 
+    for (let c of game.creaturesVisibles.filter(fn.isGentil)) {
+        console.error(c.creatureId, future.getFuturePosition(c));
+    }
 
     const myScansIds = game.myDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
         .filter(v => !game.creaturesValidated.map(fn.id).includes(v)) // Pas utile ?
@@ -94,7 +98,7 @@ while (1 === 1) {
 
         if (d.state === 'DOWN') {
             d.idCreatureTarget = null;
-            d.angle = 90;
+            d.angle = down.getDownAngle(d)
             debug.push('DOWN');
         }
 
@@ -132,15 +136,15 @@ while (1 === 1) {
         const fairePeurA = game.creaturesVisibles
             .filter(fn.isGentil)
             .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
-            .map(c => ({...c, ...fnFaireFuir.getFuturePosition(c)}))
             .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-            .filter(c => fnFaireFuir.ilEstPretDuBord(c))
+            .filter(fnFaireFuir.ilEstPretDuBord)
+            .filter(c => !future.vaDispaitre(c))
 
         for (const s of fairePeurA) {
-            // const pos = fnFaireFuir.getPositionToBouh(s);
-            // d.angle = fn.moduloAngle(fn.angleTo(d, pos));
-            // distanceToMove = fn.getDistance(d, pos);
-            // debug.push('BOU', s.creatureId);
+            const pos = fnFaireFuir.getPositionToBouh(s);
+            d.angle = fn.moduloAngle(fn.angleTo(d, pos));
+            distanceToMove = fn.getDistance(d, pos);
+            debug.push('BOU', s.creatureId);
         }
 
         // ÉVITER MONSTRES
@@ -149,15 +153,9 @@ while (1 === 1) {
             .creaturesVisibles.filter(fn.isMechant)
             .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
 
-        console.error('invisibles', invisiblesMonsters);
-
         const monsters = [...game.creaturesVisibles, ...invisiblesMonsters]
             .filter(fn.isMechant)
             .filter(c => fn.getDistance(c, d) < 3000);
-
-        for (const p of monsters) {
-            console.error('m', p, future.getFuturePosition(p, 1));
-        }
 
         d.angle = fnAvoid.bestAngleAvoiding(monsters, d, d.angle);
 
