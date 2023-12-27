@@ -20,7 +20,11 @@ export const future = {
 
             if (!nearestDrone) {
                 c.nextAngle = fn.moduloAngle(fn.angleTo(c, { x: c.x + c.vx, y: c.y + c.vy }));
-                c.nextDistance = 270;
+                if (c.vx === 0 && c.vy === 0) {
+                    c.nextDistance = 0;
+                } else {
+                    c.nextDistance = 270;
+                }
             } else {
                 c.nextAngle =  fn.moduloAngle(fn.angleTo(c, nearestDrone));
                 c.nextDistance = 540;

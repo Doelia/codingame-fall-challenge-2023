@@ -35,16 +35,15 @@ while (1 === 1) {
 
     readInputs();
 
+    const invisibleCreatures = lastGame.creaturesVisibles
+        .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
+
     game.creaturesVisibles
         .map(c => future.computeNextPosition(c, game));
 
     lastGame.creaturesVisibles
         .map(future.applyNextPosition)
         .map(c => future.computeNextPosition(c, game));
-
-    for (let c of game.creaturesVisibles.filter(fn.isGentil)) {
-        console.error(c.creatureId, future.getFuturePosition(c));
-    }
 
     const myScansIds = game.myDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
         .filter(v => !game.creaturesValidated.map(fn.id).includes(v)) // Pas utile ?
@@ -81,6 +80,10 @@ while (1 === 1) {
             d.state = 'FINISHED';
         }
 
+        if (d.state === 'FINISHED' && targets.length > 0) {
+            d.state = 'SEARCH';
+        }
+
         if (d.state === 'SCORE' && d.y <= 500) {
             d.state = 'SEARCH';
             d.angle = 90;
@@ -90,7 +93,7 @@ while (1 === 1) {
             // d.state = 'SCORE';
         }
 
-        if (d.y <= 500) {
+        if (d.y <= 500 || d.emergency) {
             d.idCreatureTarget = null;
         }
 
@@ -102,7 +105,7 @@ while (1 === 1) {
             debug.push('DOWN');
         }
 
-        if (d.state === 'SEARCH') {
+        if (d.state === 'SEARCH' && !d.emergency) {
             if (
                 !d.idCreatureTarget // Plus de target
                 || dontScanIt.includes(d.idCreatureTarget)
@@ -133,11 +136,12 @@ while (1 === 1) {
 
 
         // FAIRE PEUR
-        const fairePeurA = game.creaturesVisibles
+
+        const fairePeurA = [...game.creaturesVisibles, ...invisibleCreatures]
             .filter(fn.isGentil)
             .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
             .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-            .filter(fnFaireFuir.ilEstPretDuBord)
+            .filter(c => fnFaireFuir.ilEstPretDuBord(future.getFuturePosition(c)))
             .filter(c => !future.vaDispaitre(c))
 
         for (const s of fairePeurA) {
@@ -149,23 +153,24 @@ while (1 === 1) {
 
         // ÉVITER MONSTRES
 
-        let invisiblesMonsters = lastGame
-            .creaturesVisibles.filter(fn.isMechant)
-            .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
-
-        const monsters = [...game.creaturesVisibles, ...invisiblesMonsters]
+        const monsters = [...game.creaturesVisibles, ...invisibleCreatures]
             .filter(fn.isMechant)
             .filter(c => fn.getDistance(c, d) < 3000);
 
-        d.angle = fnAvoid.bestAngleAvoiding(monsters, d, d.angle);
+        const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle);
+        if (angleAvoiding !== d.angle) {
+            debug.push('AVOID');
+            d.angle = angleAvoiding;
+            distanceToMove = 600;
+        }
 
         // Compute light
 
         let light = false;
 
         // On allume la light si ça fait longtemps
-        if (game.turnId - d.lastLightTurn >= 2 && d.state !== 'FINISHED') {
-            if (d.y > 2000) {
+        if (game.turnId - d.lastLightTurn >= 3 && d.state !== 'FINISHED') {
+            if (d.y > 2500) {
                 light = true;
             }
         }

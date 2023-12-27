@@ -21,7 +21,7 @@ export const fnFaireFuir = {
     },
 
     ilEstPretDuBord(p: Point) {
-        const padding = 2000;
+        const padding = 1000;
         return p.x < padding || p.x > 10000-padding;
     },
 

@@ -2,6 +2,9 @@ import {CreatureVisible, MyDrone} from "../types";
 import {fn} from "./utils";
 import {future} from "./future";
 
+// TODO debug 416989328197959550 // Voir dans le future
+// TODO debug 3691718579144519700 vs kami
+
 export const fnAvoid = {
 
 
