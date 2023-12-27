@@ -7,3 +7,5 @@ cat src/main.ts >> $output
 
 # remove all lines that start with "import" in the build.tsfile
 sed '/^import/d' $output > $output.ts
+rm $output
+mv $output.ts $output

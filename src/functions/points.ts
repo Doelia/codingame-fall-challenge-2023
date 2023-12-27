@@ -3,6 +3,8 @@ import {COLORS, game, TYPES} from "../main";
 
 export const fnPoints = {
 
+    // TODO pas sur de mon bordel de turns
+
     pointsIfIUpNow: function(myScansIds: number[]) {
 
         const myturnToUp = Math.max(...game.myDrones.map(fn.turnToUp));

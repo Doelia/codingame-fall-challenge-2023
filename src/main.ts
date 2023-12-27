@@ -1,9 +1,11 @@
 import {CreatureVisible, Drone, Game, MyDrone} from "./types";
 import {fn} from "./functions/utils";
-import {compute, initGame, readInputs} from "./functions/parseInputs";
+import {initGame, readInputs} from "./functions/parseInputs";
 import {fnPoints} from "./functions/points";
 import {fnTarget} from "./functions/targets";
 import {fnAvoid} from "./functions/avoid";
+import {fnFaireFuir} from "./functions/faireFuir";
+import {future} from "./functions/future";
 
 export const game: Game = {
     turnId: 0,
@@ -19,6 +21,8 @@ export const game: Game = {
     radars: [],
 }
 
+let lastGame: Game = {...game};
+
 export let TYPES = [0, 1, 2];
 export let COLORS = [0, 1, 2, 3];
 
@@ -26,8 +30,17 @@ initGame();
 
 while (1 === 1) {
 
+    game.turnId++;
+
     readInputs();
-    compute();
+
+    game.creaturesVisibles
+        .map(c => future.computeNextPosition(c, game));
+
+    lastGame.creaturesVisibles
+        .map(future.applyNextPosition)
+        .map(c => future.computeNextPosition(c, game));
+
 
     const myScansIds = game.myDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
         .filter(v => !game.creaturesValidated.map(fn.id).includes(v)) // Pas utile ?
@@ -38,6 +51,7 @@ while (1 === 1) {
 
     const pointsIfIUpNow = fnPoints.pointsIfIUpNow(myScansIds);
     const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd(myScansIds, vsScansIds);
+
 
     let dontScanIt = [
         ...myScansIds,
@@ -51,9 +65,11 @@ while (1 === 1) {
 
         const targets = fnTarget.getTargets(d, myScansIds);
 
+        let distanceToMove = 600;
+
         // compute state
 
-        if (d.state === 'DOWN') {
+        if (d.state === 'DOWN' && d.y >= 8500) {
             d.state = 'SEARCH';
         }
 
@@ -67,7 +83,11 @@ while (1 === 1) {
         }
 
         if (pointsIfIUpNow > pointsVsIfUpAtEnd) {
-            d.state = 'SCORE';
+            // d.state = 'SCORE';
+        }
+
+        if (d.y <= 500) {
+            d.idCreatureTarget = null;
         }
 
         // Compute angle
@@ -107,7 +127,39 @@ while (1 === 1) {
             d.angle = 270;
         }
 
-        d.angle = fnAvoid.bestAngleAvoiding(d, d.angle);
+
+        // FAIRE PEUR
+        const fairePeurA = game.creaturesVisibles
+            .filter(fn.isGentil)
+            .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
+            .map(c => ({...c, ...fnFaireFuir.getFuturePosition(c)}))
+            .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
+            .filter(c => fnFaireFuir.ilEstPretDuBord(c))
+
+        for (const s of fairePeurA) {
+            // const pos = fnFaireFuir.getPositionToBouh(s);
+            // d.angle = fn.moduloAngle(fn.angleTo(d, pos));
+            // distanceToMove = fn.getDistance(d, pos);
+            // debug.push('BOU', s.creatureId);
+        }
+
+        // ÉVITER MONSTRES
+
+        let invisiblesMonsters = lastGame
+            .creaturesVisibles.filter(fn.isMechant)
+            .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
+
+        console.error('invisibles', invisiblesMonsters);
+
+        const monsters = [...game.creaturesVisibles, ...invisiblesMonsters]
+            .filter(fn.isMechant)
+            .filter(c => fn.getDistance(c, d) < 3000);
+
+        for (const p of monsters) {
+            console.error('m', p, future.getFuturePosition(p, 1));
+        }
+
+        d.angle = fnAvoid.bestAngleAvoiding(monsters, d, d.angle);
 
         // Compute light
 
@@ -122,14 +174,18 @@ while (1 === 1) {
 
         // SENDING
 
-        let goTo = fn.forward(d, d.angle, 600);
+        let goTo = fn.forward(d, d.angle, distanceToMove);
+        d.x = goTo.x;
+        d.y = goTo.y;
 
         if (light) {
             debug.push('LIGHT');
             d.lastLightTurn = game.turnId;
         }
 
-        console.log('MOVE ' + goTo.x + ' ' + goTo.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
+        console.log('MOVE ' + d.x + ' ' + d.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
 
     }
+
+    lastGame = {...game};
 }

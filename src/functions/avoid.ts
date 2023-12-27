@@ -1,31 +1,28 @@
 import {CreatureVisible, MyDrone} from "../types";
 import {fn} from "./utils";
 import {game} from "../main";
+import {future} from "./future";
+
+
+// TODO debug 1709671787535293000
+// TODO debug 7566632910746621000
 
 export const fnAvoid = {
 
-    getFutureMonsterPosition(monster: CreatureVisible, projection=1) {
-        return fn.forward(monster, monster.nextAngle, projection*monster.nextDistance);
-    },
 
-    bestAngleAvoiding(d: MyDrone, angleWanted: number) {
-
-        const monsters = game.creaturesVisibles
-            .filter(c => c.type === -1)
-            .filter(c => fn.getDistance(c, d) < 2000)
-            .sort((a, b) => fn.getDistance(a, d) - fn.getDistance(b, d))
+    bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number) {
 
         function isGoodAngle(angle: number) {
-            return getDangerours(monsters, d, angle).length <= 0;
+            return getDangerours(d, angle).length <= 0;
         }
 
         // ILs sont dangereux s'ils sont capables de me manger au prochain tour
-        function getDangerours(monsters, d, angle) {
+        function getDangerours(d, angle) {
             let PAS = 100;
             return monsters.filter(monster => {
                 for (let i = 0; i <= PAS; i++) {
                     let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
-                    let nextPositionMonster = fnAvoid.getFutureMonsterPosition(monster, i/PAS)
+                    let nextPositionMonster = future.getFuturePosition(monster, i/PAS)
                     let distance = fn.getDistance(nextPositionMonster, nextMyPosition);
                     if (distance <= 510) {
                         return true;

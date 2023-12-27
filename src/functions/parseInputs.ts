@@ -18,7 +18,6 @@ export function initGame() {
 
 export function readInputs() {
 
-    game.turnId++;
 
     const myScore = parseInt(readline());
     const vsScore = parseInt(readline());
@@ -96,15 +95,12 @@ export function readInputs() {
             d.x = x;
             d.y = y;
             d.emergency = emergency;
+            d.lastLightTurn = battery < d.battery ? game.turnId-1 : d.lastLightTurn;
             d.battery = battery;
             d.creaturesScanned = [];
         } else {
-            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [] });
+            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lastLightTurn: 0 });
         }
-
-        // if (emergency) {
-        //     d.creaturesScanned = [];
-        // }
     }
 
     // Créatures scannées
@@ -148,37 +144,3 @@ export function readInputs() {
     }
 }
 
-export function compute() {
-
-    for (let d of game.myDrones) {
-        if (d.y <= 500) {
-            // d.creaturesScanned = [];
-            d.idCreatureTarget = null;
-        }
-    }
-
-    // Compute nextAngle and nextDistance for monsters
-    for (let m of game.creaturesVisibles.filter(c => game.creaturesMetas.get(c.creatureId).type === -1)) {
-
-        const allDrones = [...game.myDrones, ...game.vsDrones];
-
-        let neerestDrone = allDrones
-            .filter(d => !d.emergency)
-            .filter(d => {
-                let lightPuissance = d.lastLightTurn === game.turnId - 1 ? 2000 : 800; // TODO
-                return fn.getDistance(d, m) < lightPuissance
-            })
-            .sort((a, b) => fn.getDistance(a, m) - fn.getDistance(b, m))[0];
-
-        if (!neerestDrone) {
-            m.nextAngle = fn.moduloAngle(fn.angleTo(m, { x: m.x + m.vx, y: m.y + m.vy }));
-            m.nextDistance = Math.sqrt(Math.pow(m.vx, 2) + Math.pow(m.vy, 2));
-        } else {
-            m.nextAngle =  fn.moduloAngle(fn.angleTo(m, neerestDrone));
-            m.nextDistance = 540;
-            m.neerestDrone = neerestDrone.droneId;
-        }
-
-    }
-
-}
