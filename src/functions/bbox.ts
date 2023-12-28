@@ -1,4 +1,4 @@
-import {CreatureBbox, CreatureMeta, Drone, Game, Point, Radar} from "../types";
+import {Bbox, CreatureBbox, CreatureMeta, Drone, Game, Point, Radar} from "../types";
 import {fn} from "./utils";
 
 export const fnBbox = {
@@ -17,13 +17,33 @@ export const fnBbox = {
             let bbox = fnBbox.getBboxMeta(meta);
             for (let r of game.radars.filter(r => r.creatureId === meta.creatureId)) {
                 const d = game.myDrones.find(d => d.droneId === r.droneId);
-                bbox = fnBbox.intersectBbox(bbox, fnBbox.getBboxRadar(d, r));
+                bbox = fnBbox.getIntersection(bbox, fnBbox.getBboxRadar(d, r));
             }
             bboxes.push(bbox);
         }
 
         return bboxes;
 
+    },
+
+    // return true if the two bboxes intersect
+    intersects(a: Bbox, b: Bbox): boolean {
+        return (
+            a.xMin <= b.xMax &&
+            a.xMax >= b.xMin &&
+            a.yMin <= b.yMax &&
+            a.yMax >= b.yMin
+        );
+    },
+
+    lightDroneToBbox(d: Drone): Bbox {
+        let light = 2000;
+        return {
+            xMin: d.x - light/2,
+            xMax: d.x + light/2,
+            yMin: d.y - light/2,
+            yMax: d.y + light/2,
+        }
     },
 
     enlargeWithMovement(bbox: CreatureBbox): CreatureBbox {
@@ -50,7 +70,7 @@ export const fnBbox = {
         if (fishType === 2) return [7500, 10000];
     },
 
-    intersectBbox(a: CreatureBbox, b: CreatureBbox): CreatureBbox {
+    getIntersection(a: CreatureBbox, b: CreatureBbox): CreatureBbox {
         return {
             creatureId: a.creatureId,
             xMin: Math.max(a.xMin, b.xMin),

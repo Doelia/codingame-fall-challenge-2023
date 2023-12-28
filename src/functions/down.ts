@@ -9,7 +9,6 @@ export const down = {
                 x: 2000,
                 y: 9999,
             }
-
         } else {
             return {
                 x: 8000,

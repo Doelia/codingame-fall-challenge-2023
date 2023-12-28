@@ -8,6 +8,7 @@ import {fnFaireFuir} from "./functions/faireFuir";
 import {future} from "./functions/future";
 import {down} from "./functions/down";
 import {fnBbox} from "./functions/bbox";
+import {fnLight} from "./functions/light";
 
 export const game: Game = {
     turnId: 0,
@@ -64,18 +65,15 @@ while (1 === 1) {
     const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd(myScansIds, vsScansIds);
 
     game.creatureBboxes = fnBbox.compute(game);
-
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
-
     game.creatureBboxes = game.creatureBboxes.map(bbox => {
         let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === bbox.creatureId);
         if (oldBbox) {
-            return fnBbox.intersectBbox(bbox, oldBbox);
+            return fnBbox.getIntersection(bbox, oldBbox);
         } else {
             return bbox;
         }
     });
-
     console.error('bboxes', game.creatureBboxes);
 
     for (let d of game.myDrones) {
@@ -192,11 +190,16 @@ while (1 === 1) {
 
         let light = false;
 
+        const probablySomeoneInMyMaxLight = fnLight.probablySomeoneInMyMaxLight(d, game.creatureBboxes, myScansIds)
+
         // On allume la light si ça fait longtemps
-        if (game.turnId - d.lastLightTurn >= 3 && d.state !== 'FINISHED') {
-            if (d.y > 2500) {
-                light = true;
-            }
+        if (
+            game.turnId - d.lastLightTurn >= 3
+            && d.state !== 'FINISHED'
+            && probablySomeoneInMyMaxLight
+            && d.y > 2500
+        ) {
+            light = true;
         }
 
         // SENDING

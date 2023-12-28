@@ -24,30 +24,4 @@ export const fnTarget = {
             })
     },
 
-    // radarToAngle: function (d, radar) {
-    //     const target = this.radarToPosition(d, radar);
-    //     return fn.angleTo(d, target);
-    // },
-
-    // translatePositionToFishType(position, fishType) {
-    //     const [min, max] = fnBbox.fishTypeToMinMaxY(fishType);
-    //     return {
-    //         x: position.x,
-    //         y: Math.min(Math.max(position.y, min), max),
-    //     }
-    // },
-    // radarDirectionToTarget: function(direction) {
-    //     const PADDING = 500;
-    //     switch (direction) {
-    //         case 'TL': return {x: PADDING, y: 0 };
-    //         case 'TR': return {x: 10000 - PADDING, y: 0};
-    //         case 'BR': return {x: 10000 - PADDING, y: 10000};
-    //         case 'BL': return {x: PADDING, y: 10000};
-    //     }
-    // },
-    // radarToPosition: function (d, radar) {
-    //     let target = this.radarDirectionToTarget(radar.direction);
-    //     let fishType = game.creaturesMetas.get(radar.creatureId).type;
-    //     return this.translatePositionToFishType(target, fishType);
-    // },
 }

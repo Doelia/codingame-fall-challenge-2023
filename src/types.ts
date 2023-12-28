@@ -46,12 +46,15 @@ export interface Radar {
     direction: string;
 }
 
-export interface CreatureBbox {
-    creatureId: number;
+export interface Bbox {
     xMin: number;
     xMax: number;
     yMin: number;
     yMax: number;
+}
+
+export interface CreatureBbox extends Bbox {
+    creatureId: number;
 }
 
 export interface Game {
