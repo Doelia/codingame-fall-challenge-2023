@@ -36,15 +36,6 @@ export const fnBbox = {
         );
     },
 
-    lightDroneToBbox(d: Drone): Bbox {
-        let light = 2000;
-        return {
-            xMin: d.x - light/2,
-            xMax: d.x + light/2,
-            yMin: d.y - light/2,
-            yMax: d.y + light/2,
-        }
-    },
 
     enlargeWithMovement(bbox: CreatureBbox): CreatureBbox {
         let speed = 400;

@@ -46,6 +46,7 @@ export interface Radar {
     direction: string;
 }
 
+
 export interface Bbox {
     xMin: number;
     xMax: number;

@@ -61,8 +61,10 @@ while (1 === 1) {
         ...game.creaturesValidated.map(fn.id),
     ];
 
-    const pointsIfIUpNow = fnPoints.pointsIfIUpNow(myScansIds);
-    const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd(myScansIds, vsScansIds);
+    const pointsIfIUpNow = fnPoints.pointsIfIUpNow(lastGame);
+    const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd();
+
+    console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
     game.creatureBboxes = fnBbox.compute(game);
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
@@ -81,11 +83,6 @@ while (1 === 1) {
         let debug = [];
 
         const targets = fnTarget.getTargets(d, myScansIds, game.creatureBboxes);
-
-        // console.error('targets', d.droneId, targets.map(t => ({
-        //     ...t,
-        //     distance: fn.getDistance(d, fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === t.creatureId)))
-        // })));
 
         let distanceToMove = 600;
 
@@ -110,7 +107,7 @@ while (1 === 1) {
         }
 
         if (pointsIfIUpNow > pointsVsIfUpAtEnd) {
-            // d.state = 'SCORE';
+            d.state = 'SCORE';
         }
 
         if (d.y <= 500 || d.emergency) {
@@ -156,21 +153,24 @@ while (1 === 1) {
             d.angle = 270;
         }
 
-
         // FAIRE PEUR
 
-        const fairePeurA = [...game.creaturesVisibles, ...invisibleCreatures]
-            .filter(fn.isGentil)
-            .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
-            .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-            .filter(c => fnFaireFuir.ilEstPretDuBord(future.getFuturePosition(c)))
-            .filter(c => !future.vaDispaitre(c))
+        if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
+            const fairePeurA = [...game.creaturesVisibles, ...invisibleCreatures]
+                .filter(fn.isGentil)
+                .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
+                .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
+                .filter(c => fnFaireFuir.ilEstPretDuBord(future.getFuturePosition(c)))
+                .filter(c => !future.vaDispaitre(c))
 
-        for (const s of fairePeurA) {
-            const pos = fnFaireFuir.getPositionToBouh(s);
-            d.angle = fn.moduloAngle(fn.angleTo(d, pos));
-            distanceToMove = fn.getDistance(d, pos);
-            debug.push('BOU', s.creatureId);
+            for (const s of fairePeurA) {
+                const pos = fnFaireFuir.getPositionToBouh(s);
+                d.angle = fn.moduloAngle(fn.angleTo(d, pos));
+                distanceToMove = fn.getDistance(d, pos);
+                debug.push('BOU', s.creatureId);
+            }
+        } else {
+            debug.push('AGGRO');
         }
 
         // ÉVITER MONSTRES

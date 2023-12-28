@@ -2,16 +2,14 @@ import {game} from "../main";
 import {CreatureMeta, CreatureVisible, Drone, Point} from "../types";
 
 export const fn = {
-    getDistance: (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),
-    samePoint: (p1, p2) => p1.x === p2.x && p1.y === p2.y,
-    reversePoint: function(p) {
-        return { x: -p.x, y: -p.y, }
-    },
-    toRadians: (degrees) => degrees * Math.PI / 180,
-    toDegrees: (radians)  => radians * 180 / Math.PI,
-    cos: (degrees) => Math.cos(fn.toRadians(degrees)),
-    sin: (degrees) =>  Math.sin(fn.toRadians(degrees)),
-    turnAtMost(angle, turn, max=360) {
+    getDistance: (p1: Point, p2: Point): number => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)),
+    samePoint: (p1: Point, p2: Point): boolean => p1.x === p2.x && p1.y === p2.y,
+    reversePoint: function(p: Point): Point { return { x: -p.x, y: -p.y, } },
+    toRadians: (degrees: number): number => degrees * Math.PI / 180,
+    toDegrees: (radians: number): number  => radians * 180 / Math.PI,
+    cos: (degrees: number): number => Math.cos(fn.toRadians(degrees)),
+    sin: (degrees: number): number =>  Math.sin(fn.toRadians(degrees)),
+    turnAtMost(angle: number, turn: number, max=360): number {
         if (Math.abs(turn) > max) {
             return angle + (turn > 0 ? max : -max);
         } else {
@@ -48,7 +46,8 @@ export const fn = {
     id: (p): number => p.creatureId,
     uniq: ((v, i, a) => a.indexOf(v) === i),
     turnToUp: (d: Drone): number => Math.floor((d.y-500) / 600),
-    isInGame: ({x, y}: Point) => x >= 0 && x <= 9999 && y >= 0 && y <= 9999,
-    isGentil: (c: CreatureMeta) => c.type !== -1,
-    isMechant: (c: CreatureMeta) => c.type === -1,
+    isInGame: ({x, y}: Point): boolean => x >= 0 && x <= 9999 && y >= 0 && y <= 9999,
+    isGentil: (c: CreatureMeta): boolean => c.type !== -1,
+    isMechant: (c: CreatureMeta): boolean => c.type === -1,
+    concat: (acc, v) => [...acc, ...v],
 }

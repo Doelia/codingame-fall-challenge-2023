@@ -1,47 +1,79 @@
 import {fn} from "./utils";
 import {COLORS, game, TYPES} from "../main";
+import {Drone, Game} from "../types";
+
+
+// Bug seed 240095120131088830 vs WhatTrickeryIsThis
 
 export const fnPoints = {
 
-    // TODO pas sur de mon bordel de turns
+    pointsIfIUpNow: function(lastGame: Game) {
 
-    pointsIfIUpNow: function(myScansIds: number[]) {
+        let scanned = game.myDrones.map(d => {
+            return d.creaturesScanned.map(id => {
+                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
+            })
+        }).reduce(fn.concat, []);
 
-        const myturnToUp = Math.max(...game.myDrones.map(fn.turnToUp));
+        let vsScanned = game.vsDrones.map(d => {
+
+            const lastD = lastGame.vsDrones.find(v => v.droneId === d.droneId);
+
+            // il est pas en train de remonter
+            if (lastD && d.y > lastD.y) {
+                return [];
+            }
+
+            return d.creaturesScanned.map(id => {
+                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
+            })
+
+        }).reduce(fn.concat, []);
 
         return fnPoints.computePoints(
             [
                 ...game.creaturesValidated,
-                ...myScansIds.map(id => ({creatureId: id, turn: game.turnId + myturnToUp})),
-            ],
-            game.vsCreaturesValidates
+                ...scanned
+            ], [
+                ...game.vsCreaturesValidates,
+                ...vsScanned
+            ]
         );
     },
 
-    pointsVsIfUpAtEnd: function(myScansIds: number[], vsScansIds: number[]) {
+    pointsVsIfUpAtEnd: function() {
 
         const inRadarsIds = game.radars.map(fn.id);
 
+        let scanned = game.myDrones.map(d => {
+            return d.creaturesScanned.map(id => {
+                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
+            })
+        }).reduce(fn.concat, []);
+
+        let vsScanned = game.vsDrones.map(d => {
+            return d.creaturesScanned.map(id => {
+                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
+            })
+        }).reduce(fn.concat, []);
+
         let stay = game.creaturesMetasArr
             .map(fn.id)
-            .filter(v => game.creaturesMetas.get(v).type !== -1)
-            .filter(v => !game.vsCreaturesValidates.map(fn.id).includes(v))
-            .filter(v => inRadarsIds.includes(v))
-            .filter(v => !vsScansIds.includes(v))
+            .filter(id => fn.isGentil(game.creaturesMetas.get(id)))
+            .filter(id => !game.vsCreaturesValidates.map(fn.id).includes(id))
+            .filter(id => inRadarsIds.includes(id))
+            .filter(id => !vsScanned.map(fn.id).includes(id))
             .map(id => ({creatureId: id, turn: 200}));
-
-        const myturnToUp = Math.max(...game.myDrones.map(fn.turnToUp));
-        const vsturnToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
 
         return fnPoints.computePoints(
             [
                 ...game.vsCreaturesValidates,
-                ...vsScansIds.map(id => ({creatureId: id, turn: game.turnId + vsturnToUp})),
+                ...vsScanned,
                 ...stay,
             ],
             [
                 ...game.creaturesValidated,
-                ...myScansIds.map(id => ({creatureId: id, turn: game.turnId + myturnToUp})),
+                ...scanned
             ],
         );
     },
@@ -51,6 +83,10 @@ export const fnPoints = {
     },
 
     computePoints(validated, vsValidated) {
+
+        // Retirer des doublons
+        validated = validated.filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
+        vsValidated = vsValidated.filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
 
         let points = 0;
 

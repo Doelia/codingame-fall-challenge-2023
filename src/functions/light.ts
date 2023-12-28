@@ -1,5 +1,5 @@
 import {fnBbox} from "./bbox";
-import {CreatureBbox, Drone} from "../types";
+import {Bbox, CreatureBbox, Drone} from "../types";
 import {game} from "../main";
 import {fn} from "./utils";
 
@@ -14,12 +14,22 @@ export const fnLight = {
 
         bboxes = bboxes.filter(c => !dontScanIt.includes(c.creatureId));
 
-        const myBbox = fnBbox.lightDroneToBbox(d);
+        const myBbox = fnLight.lightDroneToBbox(d);
         for (const bbox of bboxes) {
             if (fnBbox.intersects(myBbox, bbox)) {
                 return true;
             }
         }
         return false;
-    }
+    },
+
+    lightDroneToBbox(d: Drone): Bbox {
+        let light = 2000;
+        return {
+            xMin: d.x - light/2,
+            xMax: d.x + light/2,
+            yMin: d.y - light/2,
+            yMax: d.y + light/2,
+        }
+    },
 }

@@ -1,9 +1,29 @@
-import {CreatureVisible, MyDrone} from "../types";
+import {CreatureVisible, Drone, MyDrone} from "../types";
 import {fn} from "./utils";
 import {future} from "./future";
+import {game} from "../main";
 
 export const fnAvoid = {
 
+    jeVaisMeFaireAgresser(d: Drone) {
+
+        const allDrones = [...game.myDrones, ...game.vsDrones];
+
+        return game.creaturesVisibles
+            .filter(fn.isMechant)
+            .some(m => {
+
+                let nearestDrone = allDrones
+                    .filter(d => !d.emergency)
+                    .filter(d => {
+                        let lightPuissance = d.lastLightTurn === game.turnId - 1 ? 2000 : 800;
+                        return fn.getDistance(d, m) < lightPuissance
+                    })
+                    .sort((a, b) => fn.getDistance(a, m) - fn.getDistance(b, m))[0];
+
+                return nearestDrone.droneId === d.droneId;
+            });
+    },
 
     bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number): number {
 
