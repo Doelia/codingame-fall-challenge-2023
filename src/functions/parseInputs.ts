@@ -1,6 +1,7 @@
 import {readline} from "../polyfill";
 import {fn} from "./utils";
 import {game} from "../main";
+import {fnBbox} from "./bbox";
 
 export function initGame() {
     const creatureCount = parseInt(readline());
@@ -13,6 +14,7 @@ export function initGame() {
         const creature = {creatureId, color, type};
         game.creaturesMetas.set(creatureId, creature);
         game.creaturesMetasArr.push(creature);
+
     }
 }
 

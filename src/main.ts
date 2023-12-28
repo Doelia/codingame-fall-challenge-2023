@@ -7,6 +7,7 @@ import {fnAvoid} from "./functions/avoid";
 import {fnFaireFuir} from "./functions/faireFuir";
 import {future} from "./functions/future";
 import {down} from "./functions/down";
+import {fnBbox} from "./functions/bbox";
 
 export const game: Game = {
     turnId: 0,
@@ -15,6 +16,8 @@ export const game: Game = {
     creaturesMetas: new Map(),
     creaturesMetasArr: [],
     creaturesVisibles: [],
+
+    creatureBboxes: [],
 
     creaturesValidated: [],
     vsCreaturesValidates: [],
@@ -60,17 +63,38 @@ while (1 === 1) {
     const pointsIfIUpNow = fnPoints.pointsIfIUpNow(myScansIds);
     const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd(myScansIds, vsScansIds);
 
+    game.creatureBboxes = fnBbox.compute(game);
+
+    lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
+
+    game.creatureBboxes = game.creatureBboxes.map(bbox => {
+        let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === bbox.creatureId);
+        if (oldBbox) {
+            return fnBbox.intersectBbox(bbox, oldBbox);
+        } else {
+            return bbox;
+        }
+    });
+
+    console.error('bboxes', game.creatureBboxes);
+
     for (let d of game.myDrones) {
 
         let debug = [];
 
-        const targets = fnTarget.getTargets(d, myScansIds);
+        const targets = fnTarget.getTargets(d, myScansIds, game.creatureBboxes);
+
+        // console.error('targets', d.droneId, targets.map(t => ({
+        //     ...t,
+        //     distance: fn.getDistance(d, fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === t.creatureId)))
+        // })));
 
         let distanceToMove = 600;
 
         // compute state
 
-        if (d.state === 'DOWN' && d.y >= 8500) {
+        if (d.state === 'DOWN' && d.y >= 7500) {
+        // if (d.state === 'DOWN') {
             d.state = 'SEARCH';
         }
 
@@ -105,7 +129,8 @@ while (1 === 1) {
 
         if (d.state === 'SEARCH' && !d.emergency) {
             if (
-                !d.idCreatureTarget // Plus de target
+                true
+                || !d.idCreatureTarget // Plus de target
                 || dontScanIt.includes(d.idCreatureTarget)
                 || !game.radars.map(fn.id).includes(d.idCreatureTarget) // on le trouve plus sur la map
             ) {
@@ -117,7 +142,8 @@ while (1 === 1) {
             debug.push('T=' + d.idCreatureTarget);
             let radarOfTarget = targets.find(r => r.creatureId === d.idCreatureTarget);
             if (radarOfTarget) {
-                let angleToTarget = fnTarget.radarToAngle(d, radarOfTarget);
+                let target = fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === d.idCreatureTarget));
+                let angleToTarget = fn.angleTo(d, target);
                 d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
             }
         }

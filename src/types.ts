@@ -46,6 +46,14 @@ export interface Radar {
     direction: string;
 }
 
+export interface CreatureBbox {
+    creatureId: number;
+    xMin: number;
+    xMax: number;
+    yMin: number;
+    yMax: number;
+}
+
 export interface Game {
     turnId: number;
     myDrones: MyDrone[];
@@ -55,5 +63,6 @@ export interface Game {
     creaturesVisibles: CreatureVisible[];
     creaturesValidated: CreatureValidated[];
     vsCreaturesValidates: CreatureValidated[];
+    creatureBboxes: CreatureBbox[];
     radars: Radar[];
 }
