@@ -2,19 +2,12 @@ import {CreatureVisible, MyDrone} from "../types";
 import {fn} from "./utils";
 import {future} from "./future";
 
-// TODO debug 416989328197959550 // Voir dans le future
-// TODO debug 3691718579144519700 vs kami
-
 export const fnAvoid = {
 
 
-    bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number) {
+    bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number): number {
 
         let PAS = 100;
-
-        function isGoodAngle(angle: number) {
-            return getDangerours(d, angle).length <= 0;
-        }
 
         function distanceWithNerestMonster(d, angle) {
             let distance = 100000;
@@ -26,9 +19,8 @@ export const fnAvoid = {
             return distance;
         }
 
-        // ILs sont dangereux s'ils sont capables de me manger au prochain tour
-        function getDangerours(d, angle) {
-            return monsters.filter(monster => {
+        function jeMeFaisMiam(d, angle) {
+            for (let monster of monsters) {
                 for (let i = 0; i <= PAS; i++) {
                     let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
                     let nextPositionMonster = future.getFuturePosition(monster, i/PAS)
@@ -37,24 +29,45 @@ export const fnAvoid = {
                         return true;
                     }
                 }
-                return false;
-            });
+            }
+            return false;
         }
 
-        for (let i = 0; i <= 180; i++) {
-            let angle = fn.moduloAngle(angleWanted + i);
-            if (isGoodAngle(angle)) {
-                return angle;
-            }
-            angle = fn.moduloAngle(angleWanted - i);
-            if (isGoodAngle(angle)) {
-                return angle;
+        let distancePrefered = 0;
+
+        if (!jeMeFaisMiam(d, angleWanted) && distanceWithNerestMonster(d, angleWanted) >= 1000) {
+            return angleWanted;
+        }
+
+        let angles = [];
+        for (let angle = 0; angle <= 360; angle += 5) {
+            if (!jeMeFaisMiam(d, angle)) {
+                angles.push({
+                    angle,
+                    distance: distanceWithNerestMonster(d, angle),
+                });
             }
         }
 
-        console.error("c'est mort");
+        angles = angles.sort((a, b) => {
+            if (a.distance > distancePrefered && b.distance < distancePrefered) {
+                return -1;
+            }
+            if (a.distance < distancePrefered && b.distance > distancePrefered) {
+                return 1;
+            }
+            return Math.abs(fn.substrateAngles(a.angle, angleWanted)) - Math.abs(fn.substrateAngles(b.angle, angleWanted));
+        });
 
-        return angleWanted;
+        if (angles.length === 0) {
+            console.error("c'est mort");
+            return angleWanted;
+        }
+
+        const best = angles[0];
+        console.error('wanted', angleWanted, 'best', best);
+
+        return best.angle;
     },
 
 }
