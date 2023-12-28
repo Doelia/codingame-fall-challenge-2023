@@ -21,6 +21,10 @@ export const fnAvoid = {
                     })
                     .sort((a, b) => fn.getDistance(a, m) - fn.getDistance(b, m))[0];
 
+                if (!nearestDrone) {
+                    return false;
+                }
+
                 return nearestDrone.droneId === d.droneId;
             });
     },

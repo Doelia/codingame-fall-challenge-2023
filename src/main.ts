@@ -76,7 +76,6 @@ while (1 === 1) {
             return bbox;
         }
     });
-    console.error('bboxes', game.creatureBboxes);
 
     for (let d of game.myDrones) {
 
@@ -110,37 +109,26 @@ while (1 === 1) {
             d.state = 'SCORE';
         }
 
-        if (d.y <= 500 || d.emergency) {
-            d.idCreatureTarget = null;
-        }
-
         // Compute angle
 
         if (d.state === 'DOWN') {
-            d.idCreatureTarget = null;
             d.angle = down.getDownAngle(d)
             debug.push('DOWN');
         }
 
-        if (d.state === 'SEARCH' && !d.emergency) {
-            if (
-                true
-                || !d.idCreatureTarget // Plus de target
-                || dontScanIt.includes(d.idCreatureTarget)
-                || !game.radars.map(fn.id).includes(d.idCreatureTarget) // on le trouve plus sur la map
-            ) {
-                if (targets.length > 0) {
-                    d.idCreatureTarget = targets[0].creatureId;
-                }
-            }
+        if (d.state === 'SEARCH' && !d.emergency && targets.length > 0) {
+            const idCreatureTarget = targets[0].creatureId;
 
-            debug.push('T=' + d.idCreatureTarget);
-            let radarOfTarget = targets.find(r => r.creatureId === d.idCreatureTarget);
-            if (radarOfTarget) {
-                let target = fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === d.idCreatureTarget));
-                let angleToTarget = fn.angleTo(d, target);
+            debug.push('T=' + idCreatureTarget);
+            let target = fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === idCreatureTarget));
+            let angleToTarget = fn.angleTo(d, target);
+
+            if (d.y > 8500) { // Qunad on est en bas, vaut mieux pouvoir se retourner vite
+                d.angle = fn.moduloAngle(angleToTarget);
+            } else {
                 d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
             }
+
         }
 
         if (d.state === 'FINISHED') {

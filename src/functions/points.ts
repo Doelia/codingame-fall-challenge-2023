@@ -84,9 +84,14 @@ export const fnPoints = {
 
     computePoints(validated, vsValidated) {
 
-        // Retirer des doublons
-        validated = validated.filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
-        vsValidated = vsValidated.filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
+        // Retirer des doublons TODO trier par tour
+        validated = validated
+            .sort((a, b) => a.turn - b.turn)
+            .filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
+
+        vsValidated = vsValidated
+            .sort((a, b) => a.turn - b.turn)
+            .filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
 
         let points = 0;
 
@@ -94,7 +99,8 @@ export const fnPoints = {
             let {creatureId} = f;
             const isVsValidated = vsValidated.find(v => v.creatureId === creatureId);
             const imFirst = !isVsValidated || f.turn < isVsValidated.turn;
-            points += fnPoints.pointOfFish(creatureId, imFirst);
+            const wind = fnPoints.pointOfFish(creatureId, imFirst);
+            points += wind;
         }
 
         for (let type of TYPES) {
@@ -108,8 +114,9 @@ export const fnPoints = {
                 if (vsFishesOfType.length < metaNOfType) {
                     points += 4;
                 } else {
-                    const jaiToutAuTour = Math.max(fishesOfType.map(v => v.turn));
-                    const ilAToutAuTour = Math.max(vsFishesOfType.map(v => v.turn));
+                    const jaiToutAuTour = Math.max(...fishesOfType.map(v => v.turn));
+                    const ilAToutAuTour = Math.max(...vsFishesOfType.map(v => v.turn));
+
                     if (jaiToutAuTour < ilAToutAuTour) {
                         points += 4;
                     }
@@ -129,8 +136,8 @@ export const fnPoints = {
                 if (vsFishesOfColor.length < metaNOfColor) {
                     points += 3;
                 } else {
-                    const jaiToutAuTour = Math.max(fishesOfColor.map(v => v.turn));
-                    const ilAToutAuTour = Math.max(vsFishesOfColor.map(v => v.turn));
+                    const jaiToutAuTour = Math.max(...fishesOfColor.map(v => v.turn));
+                    const ilAToutAuTour = Math.max(...vsFishesOfColor.map(v => v.turn));
                     if (jaiToutAuTour < ilAToutAuTour) {
                         points += 3;
                     }
