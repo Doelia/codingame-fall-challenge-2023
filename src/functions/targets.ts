@@ -13,8 +13,8 @@ export const fnTarget = {
         const targetsDrone1 = fnTarget.getTargets(drone1);
         const targetsDrone2 = fnTarget.getTargets(drone2);
 
-        // console.error(drone1.droneId, targetsDrone1.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone1, fnTarget.radarToPoint(r)) })));
-        // console.error(drone2.droneId, targetsDrone2.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone2, fnTarget.radarToPoint(r)) })));
+        console.error(drone1.droneId, targetsDrone1.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone1, fnTarget.radarToPoint(r)) })));
+        console.error(drone2.droneId, targetsDrone2.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone2, fnTarget.radarToPoint(r)) })));
 
         if (targetsDrone1[0] && targetsDrone2[0] && targetsDrone1[0].creatureId === targetsDrone2[0].creatureId) {
             const distanceDrone1 = fn.getDistance(drone1, fnTarget.radarToPoint(targetsDrone1[0]));
@@ -37,7 +37,7 @@ export const fnTarget = {
         return fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === radar.creatureId));
     },
 
-    getTargets(d): Radar[] {
+    getTargets(d: Drone): Radar[] {
 
         const dontScanIt = fnTarget.dontScanIt();
 
@@ -49,7 +49,8 @@ export const fnTarget = {
             .sort((a, b) => {
                 let pa = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === a.creatureId));
                 let pb = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === b.creatureId));
-                return fn.getDistance(pa, d) - fn.getDistance(pb, d);
+                return pb.y - pa.y;
+                // return fn.getDistance(pa, d) - fn.getDistance(pb, d);
             })
     },
 

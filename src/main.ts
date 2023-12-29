@@ -169,7 +169,6 @@ while (1 === 1) {
 
         if (
             ((game.turnId - d.lastLightTurn >= 3) || (imBottom && someoneBottomMe))
-            && d.state !== 'FINISHED'
             && probablySomeoneInMyMaxLight
             && d.y > 2500
         ) {
