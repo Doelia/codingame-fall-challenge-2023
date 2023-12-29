@@ -1,7 +1,7 @@
 import {fn} from "./utils";
 import {game} from "../main";
 import {fnBbox} from "./bbox";
-import {CreatureBbox, Drone, Point, Radar} from "../types";
+import {CreatureBbox, Drone, MyDrone, Point, Radar} from "../types";
 
 export const fnTarget = {
 
@@ -13,19 +13,30 @@ export const fnTarget = {
         const targetsDrone1 = fnTarget.getTargets(drone1);
         const targetsDrone2 = fnTarget.getTargets(drone2);
 
-        console.error(drone1.droneId, targetsDrone1.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone1, fnTarget.radarToPoint(r)) })));
-        console.error(drone2.droneId, targetsDrone2.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone2, fnTarget.radarToPoint(r)) })));
+        // console.error(drone1.droneId, targetsDrone1.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone1, fnTarget.radarToPoint(r)) })));
+        // console.error(drone2.droneId, targetsDrone2.map(r => ({ id: r.creatureId, ...fnTarget.radarToPoint(r), distance: fn.getDistance(drone2, fnTarget.radarToPoint(r)) })));
 
         if (targetsDrone1[0] && targetsDrone2[0] && targetsDrone1[0].creatureId === targetsDrone2[0].creatureId) {
+
             const distanceDrone1 = fn.getDistance(drone1, fnTarget.radarToPoint(targetsDrone1[0]));
             const distanceDrone2 = fn.getDistance(drone2, fnTarget.radarToPoint(targetsDrone2[0]));
 
+            let priorityTo1 = [targetsDrone1[0], targetsDrone2[1]];
+            let priorityTo2 = [targetsDrone1[1], targetsDrone2[0]];
+
+            if (drone2.state !== 'SEARCH') {
+                return priorityTo1;
+            }
+            if (drone1.state !== 'SEARCH') {
+                return priorityTo2;
+            }
+
             if (distanceDrone1 < distanceDrone2) {
-                return [targetsDrone1[0], targetsDrone2[1]];
+                return priorityTo1;
+            } else {
+                return priorityTo2;
             }
-            else {
-                return [targetsDrone1[1], targetsDrone2[0]];
-            }
+
 
         }
 
@@ -37,7 +48,7 @@ export const fnTarget = {
         return fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === radar.creatureId));
     },
 
-    getTargets(d: Drone): Radar[] {
+    getTargets(d: MyDrone): Radar[] {
 
         const dontScanIt = fnTarget.dontScanIt();
 

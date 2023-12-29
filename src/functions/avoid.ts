@@ -89,7 +89,7 @@ export const fnAvoid = {
         }
 
         const best = angles[0];
-        console.error('wanted', angleWanted, 'best', best);
+        // console.error('wanted', angleWanted, 'best', best);
 
         return best.angle;
     },

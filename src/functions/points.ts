@@ -9,36 +9,58 @@ export const fnPoints = {
 
     pointsIfIUpNow: function(lastGame: Game) {
 
-        let scanned = game.myDrones.map(d => {
-            return d.creaturesScanned.map(id => {
-                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
-            })
-        }).reduce(fn.concat, []);
+        const inRadarsIds = game.radars.map(fn.id);
 
-        let vsScanned = game.vsDrones.map(d => {
+        const myValidated = [...game.creaturesValidated];
+
+        for (let d of game.myDrones) {
+            for (let id of d.creaturesScanned) {
+                myValidated.push({
+                    creatureId: id,
+                    turn: game.turnId + fn.turnToUp(d)
+                })
+            }
+        }
+
+        for (let c of game.creaturesMetasArr) {
+            if (fn.isGentil(c) && inRadarsIds.includes(c.creatureId)) {
+                myValidated.push({
+                    creatureId: c.creatureId,
+                    turn: 200
+                })
+            }
+        }
+
+        const vsValidated = [...game.vsCreaturesValidates];
+        for (let d of game.vsDrones) {
 
             const lastD = lastGame.vsDrones.find(v => v.droneId === d.droneId);
+            const ilRemonte = lastD && d.y < lastD.y;
 
-            // il est pas en train de remonter
-            if (lastD && d.y > lastD.y) {
-                return [];
+            for (let id of d.creaturesScanned) {
+                vsValidated.push({
+                    creatureId: id,
+                    turn: ilRemonte ? (game.turnId + fn.turnToUp(d)) : 199
+                })
             }
+        }
 
-            return d.creaturesScanned.map(id => {
-                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
-            })
+        for (let c of game.creaturesMetasArr) {
+            if (fn.isGentil(c) && inRadarsIds.includes(c.creatureId)) {
+                vsValidated.push({
+                    creatureId: c.creatureId,
+                    turn: 199
+                })
+            }
+        }
 
-        }).reduce(fn.concat, []);
+        // console.error('myValidated', myValidated);
+        // console.error('vsValidated', vsValidated);
 
-        return fnPoints.computePoints(
-            [
-                ...game.creaturesValidated,
-                ...scanned
-            ], [
-                ...game.vsCreaturesValidates,
-                ...vsScanned
-            ]
-        );
+        return [
+            fnPoints.computePoints(myValidated, vsValidated),
+            fnPoints.computePoints(vsValidated, myValidated),
+        ];
     },
 
     pointsVsIfUpAtEnd: function() {

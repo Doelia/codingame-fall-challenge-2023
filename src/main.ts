@@ -33,6 +33,8 @@ export let COLORS = [0, 1, 2, 3];
 
 initGame();
 
+let scored = false;
+
 while (1 === 1) {
 
     game.turnId++;
@@ -51,12 +53,18 @@ while (1 === 1) {
     const creaturesInvisible = lastGame.creaturesVisibles
         .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
 
-    const pointsIfIUpNow = fnPoints.pointsIfIUpNow(lastGame);
-    const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd();
+    const [pointsIfIUpNow, pointsVsIfUpAtEnd ] = fnPoints.pointsIfIUpNow(lastGame);
     console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
     game.creatureBboxes = fnBbox.compute(game, lastGame);
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
+
+    let goScore = false;
+    if (pointsIfIUpNow > pointsVsIfUpAtEnd && !scored) {
+        scored = true;
+        goScore = true;
+    }
+
 
     const [t1, t2] = fnTarget.getTargetForDrones();
 
@@ -70,6 +78,8 @@ while (1 === 1) {
 
         const target = d.idx === 0 ? t1 : t2;
 
+        console.error('target', target);
+
         // compute state
 
         if (d.state === 'DOWN' && d.y >= 7500) {
@@ -77,7 +87,11 @@ while (1 === 1) {
             d.state = 'SEARCH';
         }
 
-        if (!target) {
+        if (goScore) {
+            d.state = 'SCORE';
+        }
+
+        if (!target && d.state !== 'SCORE') {
             d.state = 'FINISHED';
         }
 
@@ -90,9 +104,6 @@ while (1 === 1) {
             d.angle = 90;
         }
 
-        if (pointsIfIUpNow > pointsVsIfUpAtEnd) {
-            d.state = 'SCORE';
-        }
 
         // Compute angle
 
@@ -190,5 +201,5 @@ while (1 === 1) {
 
     }
 
-    lastGame = {...game};
+    lastGame = JSON.parse(JSON.stringify(game));
 }
