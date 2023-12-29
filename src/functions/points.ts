@@ -35,7 +35,8 @@ export const fnPoints = {
         for (let d of game.vsDrones) {
 
             const lastD = lastGame.vsDrones.find(v => v.droneId === d.droneId);
-            const ilRemonte = lastD && d.y < lastD.y;
+            // const ilRemonte = lastD && d.y < lastD.y; // miieux si on met true ?
+            const ilRemonte = true;
 
             for (let id of d.creaturesScanned) {
                 vsValidated.push({

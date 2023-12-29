@@ -78,7 +78,7 @@ while (1 === 1) {
 
         const target = d.idx === 0 ? t1 : t2;
 
-        console.error('target', target);
+        console.error('target', d.droneId, target);
 
         // compute state
 
@@ -114,8 +114,8 @@ while (1 === 1) {
 
         if (d.state === 'SEARCH' && !d.emergency && target) {
 
-            debug.push('T=' + target.creatureId);
-            let pointToTarget = fnTarget.radarToPoint(target);
+            debug.push('T=' + target);
+            let pointToTarget = fnTarget.creatureIdToPoint(target);
             let angleToTarget = fn.angleTo(d, pointToTarget);
 
             if (!someoneBottomMe || d.y > 7500) { // Qunad on est en bas, vaut mieux pouvoir se retourner vite
