@@ -9,12 +9,8 @@ export const fn = {
     toDegrees: (radians: number): number  => radians * 180 / Math.PI,
     cos: (degrees: number): number => Math.cos(fn.toRadians(degrees)),
     sin: (degrees: number): number =>  Math.sin(fn.toRadians(degrees)),
-    turnAtMost(angle: number, turn: number, max=360): number {
-        if (Math.abs(turn) > max) {
-            return angle + (turn > 0 ? max : -max);
-        } else {
-            return angle + turn;
-        }
+    turnAtMost(angle: number, turn: number, max: number =360): number {
+        return Math.abs(turn) > max ? angle + (turn > 0 ? max : -max) : angle + turn;
     },
     moveToAngleAtMost(angle: number, angleTarget: number, max=360): number {
         let sub = fn.substrateAngles(angleTarget, angle);

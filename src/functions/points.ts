@@ -13,6 +13,7 @@ export const fnPoints = {
 
         const myValidated = [...game.creaturesValidated];
 
+        // Je remonte tout ça dés maintenant
         for (let d of game.myDrones) {
             for (let id of d.creaturesScanned) {
                 myValidated.push({
@@ -22,6 +23,7 @@ export const fnPoints = {
             }
         }
 
+        // Je remonterai le reste en dernier
         for (let c of game.creaturesMetasArr) {
             if (fn.isGentil(c) && inRadarsIds.includes(c.creatureId)) {
                 myValidated.push({
@@ -31,12 +33,12 @@ export const fnPoints = {
             }
         }
 
+        // Il remonte aussi tout les scans dés maintenant
         const vsValidated = [...game.vsCreaturesValidates];
         for (let d of game.vsDrones) {
 
             const lastD = lastGame.vsDrones.find(v => v.droneId === d.droneId);
-            // const ilRemonte = lastD && d.y < lastD.y; // miieux si on met true ?
-            const ilRemonte = true;
+            const ilRemonte = lastD && d.y < lastD.y;
 
             for (let id of d.creaturesScanned) {
                 vsValidated.push({
@@ -46,6 +48,7 @@ export const fnPoints = {
             }
         }
 
+        // Il finira par tout remonter, mais avant moi
         for (let c of game.creaturesMetasArr) {
             if (fn.isGentil(c) && inRadarsIds.includes(c.creatureId)) {
                 vsValidated.push({

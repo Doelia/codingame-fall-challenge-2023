@@ -192,7 +192,7 @@ while (1 === 1) {
         d.x = goTo.x;
         d.y = goTo.y;
 
-        if (light) {
+        if (light && d.battery >= 5) {
             debug.push('LIGHT');
             d.lastLightTurn = game.turnId;
         }
