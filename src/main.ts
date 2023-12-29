@@ -39,51 +39,36 @@ while (1 === 1) {
 
     readInputs();
 
-    const invisibleCreatures = lastGame.creaturesVisibles
-        .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
-
-    game.creaturesVisibles
-        .map(c => future.computeNextPosition(c, game));
-
     lastGame.creaturesVisibles
         .map(future.applyNextPosition)
         .map(c => future.computeNextPosition(c, game));
 
-    const myScansIds = game.myDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
-        .filter(v => !game.creaturesValidated.map(fn.id).includes(v)) // Pas utile ?
-        .filter(fn.uniq);
+    lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
 
-    const vsScansIds = game.vsDrones.reduce((acc, v) => [...acc, ...v.creaturesScanned], [])
-        .filter(fn.uniq);
+    game.creaturesVisibles
+        .map(c => future.computeNextPosition(c, game));
 
-    const dontScanIt = [
-        ...myScansIds,
-        ...game.creaturesValidated.map(fn.id),
-    ];
+    const creaturesInvisible = lastGame.creaturesVisibles
+        .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
 
     const pointsIfIUpNow = fnPoints.pointsIfIUpNow(lastGame);
     const pointsVsIfUpAtEnd = fnPoints.pointsVsIfUpAtEnd();
-
     console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
-    game.creatureBboxes = fnBbox.compute(game);
-    lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
-    game.creatureBboxes = game.creatureBboxes.map(bbox => {
-        let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === bbox.creatureId);
-        if (oldBbox) {
-            return fnBbox.getIntersection(bbox, oldBbox);
-        } else {
-            return bbox;
-        }
-    });
+    game.creatureBboxes = fnBbox.compute(game, lastGame);
+    // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
+
+    const [t1, t2] = fnTarget.getTargetForDrones();
 
     for (let d of game.myDrones) {
 
         let debug = [];
 
-        const targets = fnTarget.getTargets(d, myScansIds, game.creatureBboxes);
+        const someoneBottomMe = fnTarget.someoneBottomMe(d)
 
         let distanceToMove = 600;
+
+        const target = d.idx === 0 ? t1 : t2;
 
         // compute state
 
@@ -92,11 +77,11 @@ while (1 === 1) {
             d.state = 'SEARCH';
         }
 
-        if (targets.length === 0) {
+        if (!target) {
             d.state = 'FINISHED';
         }
 
-        if (d.state === 'FINISHED' && targets.length > 0) {
+        if (d.state === 'FINISHED' && target) {
             d.state = 'SEARCH';
         }
 
@@ -116,14 +101,13 @@ while (1 === 1) {
             debug.push('DOWN');
         }
 
-        if (d.state === 'SEARCH' && !d.emergency && targets.length > 0) {
-            const idCreatureTarget = targets[0].creatureId;
+        if (d.state === 'SEARCH' && !d.emergency && target) {
 
-            debug.push('T=' + idCreatureTarget);
-            let target = fnBbox.getCenter(game.creatureBboxes.find(b => b.creatureId === idCreatureTarget));
-            let angleToTarget = fn.angleTo(d, target);
+            debug.push('T=' + target.creatureId);
+            let pointToTarget = fnTarget.radarToPoint(target);
+            let angleToTarget = fn.angleTo(d, pointToTarget);
 
-            if (d.y > 8500) { // Qunad on est en bas, vaut mieux pouvoir se retourner vite
+            if (!someoneBottomMe || d.y > 7500) { // Qunad on est en bas, vaut mieux pouvoir se retourner vite
                 d.angle = fn.moduloAngle(angleToTarget);
             } else {
                 d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
@@ -144,7 +128,7 @@ while (1 === 1) {
         // FAIRE PEUR
 
         if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
-            const fairePeurA = [...game.creaturesVisibles, ...invisibleCreatures]
+            const fairePeurA = [...game.creaturesVisibles, ...creaturesInvisible]
                 .filter(fn.isGentil)
                 .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
                 .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
@@ -157,13 +141,11 @@ while (1 === 1) {
                 distanceToMove = fn.getDistance(d, pos);
                 debug.push('BOU', s.creatureId);
             }
-        } else {
-            debug.push('AGGRO');
         }
 
         // ÉVITER MONSTRES
 
-        const monsters = [...game.creaturesVisibles, ...invisibleCreatures]
+        const monsters = [...game.creaturesVisibles, ...creaturesInvisible]
             .filter(fn.isMechant)
             .filter(c => fn.getDistance(c, d) < 2500);
 
@@ -178,11 +160,15 @@ while (1 === 1) {
 
         let light = false;
 
-        const probablySomeoneInMyMaxLight = fnLight.probablySomeoneInMyMaxLight(d, game.creatureBboxes, myScansIds)
+        const probablySomeoneInMyMaxLight = fnLight.probablySomeoneInMyMaxLight(d, game.creatureBboxes)
+        const imBottom = d.y > 6500;
 
-        // On allume la light si ça fait longtemps
+        if (someoneBottomMe) {
+            debug.push('SB');
+        }
+
         if (
-            game.turnId - d.lastLightTurn >= 3
+            ((game.turnId - d.lastLightTurn >= 3) || (imBottom && someoneBottomMe))
             && d.state !== 'FINISHED'
             && probablySomeoneInMyMaxLight
             && d.y > 2500

@@ -1,11 +1,12 @@
 import {Bbox, CreatureBbox, CreatureMeta, Drone, Game, Point, Radar} from "../types";
 import {fn} from "./utils";
+import {game} from "../main";
 
 export const fnBbox = {
 
-    compute(game: Game): CreatureBbox[] {
+    compute(game: Game, lastGame: Game): CreatureBbox[] {
 
-        const bboxes = [];
+        let bboxes = [];
 
         const idCreaturesOnMap = game.radars.map(fn.id).filter(fn.uniq);
 
@@ -21,6 +22,15 @@ export const fnBbox = {
             }
             bboxes.push(bbox);
         }
+
+        bboxes = bboxes.map(bbox => {
+            let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === bbox.creatureId);
+            if (oldBbox) {
+                return fnBbox.getIntersection(bbox, oldBbox);
+            } else {
+                return bbox;
+            }
+        });
 
         return bboxes;
 

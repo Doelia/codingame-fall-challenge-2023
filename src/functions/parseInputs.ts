@@ -2,6 +2,7 @@ import {readline} from "../polyfill";
 import {fn} from "./utils";
 import {game} from "../main";
 import {fnBbox} from "./bbox";
+import {Direction} from "../types";
 
 export function initGame() {
     const creatureCount = parseInt(readline());
@@ -135,7 +136,7 @@ export function readInputs() {
         const inputs = readline().split(' ');
         const droneId = parseInt(inputs[0]);
         const creatureId = parseInt(inputs[1]);
-        const radar = inputs[2];
+        const radar = inputs[2] as Direction;
 
         let creature = game.creaturesMetas.get(creatureId);
         game.radars.push({

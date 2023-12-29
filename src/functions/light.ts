@@ -2,15 +2,13 @@ import {fnBbox} from "./bbox";
 import {Bbox, CreatureBbox, Drone} from "../types";
 import {game} from "../main";
 import {fn} from "./utils";
+import {fnTarget} from "./targets";
 
 export const fnLight = {
 
-    probablySomeoneInMyMaxLight(d: Drone, bboxes: CreatureBbox[], myScansIds: number[]) {
+    probablySomeoneInMyMaxLight(d: Drone, bboxes: CreatureBbox[]) {
 
-        const dontScanIt = [
-            ...myScansIds,
-            ...game.creaturesValidated.map(fn.id),
-        ];
+        const dontScanIt = fnTarget.dontScanIt();
 
         bboxes = bboxes.filter(c => !dontScanIt.includes(c.creatureId));
 
@@ -22,6 +20,7 @@ export const fnLight = {
         }
         return false;
     },
+
 
     lightDroneToBbox(d: Drone): Bbox {
         let light = 2000;

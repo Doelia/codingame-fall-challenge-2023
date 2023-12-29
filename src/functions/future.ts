@@ -8,26 +8,26 @@ export const future = {
 
         const allDrones = [...game.myDrones, ...game.vsDrones];
 
-        if (c.type === -1) {
+        if (fn.isMechant(c)) {
 
             let nearestDrone = allDrones
                 .filter(d => !d.emergency)
                 .filter(d => {
                     let lightPuissance = d.lastLightTurn === game.turnId - 1 ? 2000 : 800;
                     return fn.getDistance(d, c) < lightPuissance
-                })
+                }) // Il me voit
                 .sort((a, b) => fn.getDistance(a, c) - fn.getDistance(b, c))[0];
 
-            if (!nearestDrone) {
-                c.nextAngle = fn.moduloAngle(fn.angleTo(c, { x: c.x + c.vx, y: c.y + c.vy }));
+            if (nearestDrone) {
+                c.nextAngle = fn.moduloAngle(fn.angleTo(c, nearestDrone));
+                c.nextDistance = 540;
+            } else {
+                c.nextAngle = fn.moduloAngle(fn.angleTo(c, {x: c.x + c.vx, y: c.y + c.vy}));
                 if (c.vx === 0 && c.vy === 0) {
                     c.nextDistance = 0;
                 } else {
                     c.nextDistance = 270;
                 }
-            } else {
-                c.nextAngle =  fn.moduloAngle(fn.angleTo(c, nearestDrone));
-                c.nextDistance = 540;
             }
         } else {
 

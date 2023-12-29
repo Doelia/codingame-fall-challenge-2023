@@ -40,10 +40,17 @@ export interface CreatureValidated {
     turn: number;
 }
 
+export enum Direction {
+    BL = "BL",
+    BR = "BR",
+    TL = "TL",
+    TR = "TR",
+};
+
 export interface Radar {
     creatureId: number;
     droneId: number;
-    direction: string;
+    direction: Direction;
 }
 
 
