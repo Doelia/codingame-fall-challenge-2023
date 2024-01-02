@@ -6,8 +6,6 @@ export interface Point {
 export interface Drone extends Point {
     idx: number;
     droneId: number;
-    x: number;
-    y: number;
     emergency: boolean;
     battery: number;
     creaturesScanned?: number[];
@@ -16,9 +14,11 @@ export interface Drone extends Point {
 
 export interface MyDrone extends Drone {
     idCreatureTarget?: number;
-    state?: string;
     lastLightTurn: number;
     angle: number;
+    scored: boolean;
+    goDownDone: boolean;
+    mission: string;
 }
 
 export interface CreatureMeta {

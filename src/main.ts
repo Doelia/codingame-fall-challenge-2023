@@ -33,8 +33,6 @@ export let COLORS = [0, 1, 2, 3];
 
 initGame();
 
-let scored = false;
-
 while (1 === 1) {
 
     game.turnId++;
@@ -59,66 +57,83 @@ while (1 === 1) {
     game.creatureBboxes = fnBbox.compute(game, lastGame);
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
 
-    let goScore = false;
-    if (pointsIfIUpNow > pointsVsIfUpAtEnd && !scored) {
-        scored = true;
-        goScore = true;
-    }
+    const targets = fnTarget.getTargets();
 
-
-    const [t1, t2] = fnTarget.getTargetForDrones();
-
+    // Missions accompiles
     for (let d of game.myDrones) {
 
-        let debug = [];
+        const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
 
-        const someoneBottomMe = fnTarget.someoneBottomMe(d)
+        if (d.y >= 7500) {
+            d.goDownDone = true;
+        }
 
-        let distanceToMove = 600;
+        if (oldD.mission === 'SCORE' && d.y <= 500) {
+            d.scored = true;
+            d.goDownDone = true;
+        }
 
+        d.mission = null;
+    }
+
+    let [t1, t2] = fnTarget.splitTargets(targets);
+    // console.error('targets', t1, t2);
+
+    // calcul mission
+    for (let d of game.myDrones) {
+
+        const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
         const target = d.idx === 0 ? t1 : t2;
 
-        console.error('target', d.droneId, target);
-
-        // compute state
-
-        if (d.state === 'DOWN' && d.y >= 7500) {
-        // if (d.state === 'DOWN') {
-            d.state = 'SEARCH';
+        if (d.emergency) {
+            d.mission = 'EMERGENCY';
+        } else {
+            if ((oldD.mission === 'SCORE' || pointsIfIUpNow > pointsVsIfUpAtEnd) && !d.scored) {
+                d.mission = 'SCORE';
+            } else {
+                if (!target) {
+                    d.mission = 'FINISHED';
+                } else {
+                    if (d.goDownDone) {
+                        d.mission = 'SEARCH';
+                    } else {
+                        d.mission = 'DOWN';
+                    }
+                }
+            }
         }
 
-        if (goScore) {
-            d.state = 'SCORE';
-        }
+        console.error('mission', d.mission, 'old', oldD.mission);
+    }
 
-        if (!target && d.state !== 'SCORE') {
-            d.state = 'FINISHED';
-        }
+    // On recalcule les targets car les missions ont changés
+    [t1, t2] = fnTarget.splitTargets(targets);
+    console.error('targets', t1, t2);
 
-        if (d.state === 'FINISHED' && target) {
-            d.state = 'SEARCH';
-        }
+    // On calcule les angles
+    for (let d of game.myDrones) {
 
-        if (d.state === 'SCORE' && d.y <= 500) {
-            d.state = 'SEARCH';
-            d.angle = 90;
-        }
-
+        const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
+        const someoneBottomMe = fnTarget.someoneBottomMe(d)
+        let distanceToMove = 600;
+        const target = d.idx === 0 ? t1 : t2;
+        let debug = [];
 
         // Compute angle
 
-        if (d.state === 'DOWN') {
+        if (d.mission === 'DOWN') {
             d.angle = down.getDownAngle(d)
             debug.push('DOWN');
         }
 
-        if (d.state === 'SEARCH' && !d.emergency && target) {
+        else if (d.mission === 'SEARCH') {
 
             debug.push('T=' + target);
             let pointToTarget = fnTarget.creatureIdToPoint(target);
             let angleToTarget = fn.angleTo(d, pointToTarget);
 
-            if (!someoneBottomMe || d.y > 7500) { // Qunad on est en bas, vaut mieux pouvoir se retourner vite
+            if (oldD.mission !== d.mission) {
+                debug.push('NM');
                 d.angle = fn.moduloAngle(angleToTarget);
             } else {
                 d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
@@ -126,12 +141,12 @@ while (1 === 1) {
 
         }
 
-        if (d.state === 'FINISHED') {
+        else if (d.mission === 'FINISHED') {
             debug.push('FINISHED');
             d.angle = 270;
         }
 
-        if (d.state === 'SCORE') {
+        else if (d.mission === 'SCORE') {
             debug.push('SCORE' + pointsIfIUpNow + '>' + pointsVsIfUpAtEnd);
             d.angle = 270;
         }

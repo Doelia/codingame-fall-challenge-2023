@@ -72,7 +72,9 @@ export function readInputs() {
                 angle: 90,
                 idCreatureTarget: null,
                 creaturesScanned: [],
-                state: 'DOWN',
+                scored: false,
+                goDownDone: false,
+                mission: null,
             });
         }
 

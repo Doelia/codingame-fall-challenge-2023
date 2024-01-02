@@ -5,12 +5,10 @@ import {CreatureBbox, Drone, MyDrone, Point, Radar} from "../types";
 
 export const fnTarget = {
 
-    getTargetForDrones(): number[] {
+    splitTargets(targets: number[]): number[] {
 
         const drone1 = game.myDrones[0];
         const drone2 = game.myDrones[1];
-
-        const targets = fnTarget.getTargets();
 
         if (targets.length === 0) {
             return [null, null];
@@ -28,10 +26,13 @@ export const fnTarget = {
         let priorityTo1 = [targets[0], targets[1]];
         let priorityTo2 = [targets[1], targets[0]];
 
-        if (drone2.state !== 'SEARCH') {
+        const drone1Searching = drone1.mission === 'SEARCH' || drone1.mission === 'DOWN';
+        const drone2Searching = drone2.mission === 'SEARCH' || drone2.mission === 'DOWN';
+
+        if (drone1Searching && !drone2Searching) {
             return priorityTo1;
         }
-        if (drone1.state !== 'SEARCH') {
+        if (drone2Searching && !drone1Searching) {
             return priorityTo2;
         }
 
@@ -56,12 +57,10 @@ export const fnTarget = {
             .filter(r => !dontScanIt.includes(r.creatureId))
             .map(fn.id)
             .filter(fn.uniq)
-            // .filter(r => !game.myDrones.filter(v => v.droneId !== d.droneId).map(v => v.idCreatureTarget).includes(r.creatureId)) // Pas déjà pris par un autre drone
             .sort((a, b) => {
                 let pa = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === a));
                 let pb = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === b));
                 return pb.y - pa.y;
-                // return fn.getDistance(pa, d) - fn.getDistance(pb, d);
             })
     },
 

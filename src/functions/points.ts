@@ -33,7 +33,7 @@ export const fnPoints = {
             }
         }
 
-        // Il remonte aussi tout les scans dés maintenant
+        // Il remonte aussi tous scans, soit maintenant, soit plus tard
         const vsValidated = [...game.vsCreaturesValidates];
         for (let d of game.vsDrones) {
 
@@ -58,59 +58,18 @@ export const fnPoints = {
             }
         }
 
-        // console.error('myValidated', myValidated);
-        // console.error('vsValidated', vsValidated);
-
         return [
-            fnPoints.computePoints(myValidated, vsValidated),
+            fnPoints.computePoints(myValidated, vsValidated, true),
             fnPoints.computePoints(vsValidated, myValidated),
         ];
-    },
-
-    pointsVsIfUpAtEnd: function() {
-
-        const inRadarsIds = game.radars.map(fn.id);
-
-        let scanned = game.myDrones.map(d => {
-            return d.creaturesScanned.map(id => {
-                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
-            })
-        }).reduce(fn.concat, []);
-
-        let vsScanned = game.vsDrones.map(d => {
-            return d.creaturesScanned.map(id => {
-                return {creatureId: id, turn: game.turnId + fn.turnToUp(d)};
-            })
-        }).reduce(fn.concat, []);
-
-        let stay = game.creaturesMetasArr
-            .map(fn.id)
-            .filter(id => fn.isGentil(game.creaturesMetas.get(id)))
-            .filter(id => !game.vsCreaturesValidates.map(fn.id).includes(id))
-            .filter(id => inRadarsIds.includes(id))
-            .filter(id => !vsScanned.map(fn.id).includes(id))
-            .map(id => ({creatureId: id, turn: 200}));
-
-        return fnPoints.computePoints(
-            [
-                ...game.vsCreaturesValidates,
-                ...vsScanned,
-                ...stay,
-            ],
-            [
-                ...game.creaturesValidated,
-                ...scanned
-            ],
-        );
     },
 
     pointOfFish(idCreature, isFirst) {
         return (game.creaturesMetas.get(idCreature).type + 1) * (isFirst ? 2 : 1);
     },
 
-    computePoints(validated, vsValidated) {
+    computePoints(validated, vsValidated, log = false) {
 
-        // Retirer des doublons TODO trier par tour
         validated = validated
             .sort((a, b) => a.turn - b.turn)
             .filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
@@ -118,6 +77,11 @@ export const fnPoints = {
         vsValidated = vsValidated
             .sort((a, b) => a.turn - b.turn)
             .filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
+
+        if (log) {
+            // console.error('myValidated', validated);
+            // console.error('vsValidated', vsValidated);
+        }
 
         let points = 0;
 

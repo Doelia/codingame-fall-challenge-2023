@@ -25,10 +25,10 @@ export const fnLight = {
     lightDroneToBbox(d: Drone): Bbox {
         let light = 2000;
         return {
-            xMin: d.x - light/2,
-            xMax: d.x + light/2,
-            yMin: d.y - light/2,
-            yMax: d.y + light/2,
+            xMin: d.x - light,
+            xMax: d.x + light,
+            yMin: d.y - light,
+            yMax: d.y + light,
         }
     },
 }

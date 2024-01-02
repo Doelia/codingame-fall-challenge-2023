@@ -41,7 +41,7 @@ export const fn = {
     },
     id: (p): number => p.creatureId,
     uniq: ((v, i, a) => a.indexOf(v) === i),
-    turnToUp: (d: Drone): number => Math.floor((d.y-500) / 600),
+    turnToUp: (d: Drone): number => Math.ceil((d.y-500) / 600),
     isInGame: ({x, y}: Point): boolean => x >= 0 && x <= 9999 && y >= 0 && y <= 9999,
     isGentil: (c: CreatureMeta): boolean => c.type !== -1,
     isMechant: (c: CreatureMeta): boolean => c.type === -1,
