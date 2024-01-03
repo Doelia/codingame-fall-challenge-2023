@@ -20,7 +20,7 @@ export const fnFuture = {
             let nearestMonster = creatures
                 .filter(fn.isMechant)
                 .filter(v => c.creatureId !== v.creatureId)
-                .filter(v => fn.getDistance(v, c) <= 800)
+                .filter(v => fn.getDistance(v, c) <= 600)
                 .filter(v => !fn.samePoint(v, c))
                 .sort((a, b) => fn.getDistance(a, c) - fn.getDistance(b, c))[0];
 

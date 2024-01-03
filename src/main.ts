@@ -227,7 +227,7 @@ while (1 === 1) {
     lastGame = JSON.parse(JSON.stringify(game));
     fnVirtualGame.endTurn(lastGame);
 
-    // console.error('monsters', fnVirtualGame.getCreatures().filter(fn.isMechant).map(m => ({id: m.creatureId, x: m.x, y: m.y})));
+    console.error('monsters', fnVirtualGame.getCreatures().filter(fn.isMechant).map(m => ({id: m.creatureId, x: m.x, y: m.y, vx: m.vx, vy: m.vy})));
 
     // console.error('copains', fnVirtualGame.getCreatures()
     //     .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
