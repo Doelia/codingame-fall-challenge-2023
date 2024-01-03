@@ -14,6 +14,7 @@ export const fnTarget = {
             return [null, null];
         }
 
+
         // console.error(targets.map(r => ({
         //     id: r, ...fnTarget.creatureIdToPoint(r),
         //     distance1: fn.getDistance(drone1, fnTarget.creatureIdToPoint(r)),
@@ -28,6 +29,10 @@ export const fnTarget = {
 
         const drone1Searching = drone1.mission === 'SEARCH' || drone1.mission === 'DOWN';
         const drone2Searching = drone2.mission === 'SEARCH' || drone2.mission === 'DOWN';
+
+        if (targets.length === 1 && drone1Searching && drone2Searching) {
+            return [targets[0], targets[0]];
+        }
 
         if (drone1Searching && !drone2Searching) {
             return priorityTo1;

@@ -9,16 +9,20 @@ export interface Drone extends Point {
     emergency: boolean;
     battery: number;
     creaturesScanned?: number[];
-    lastLightTurn: number;
+    lightIsOn: boolean;
 }
 
 export interface MyDrone extends Drone {
     idCreatureTarget?: number;
-    lastLightTurn: number;
     angle: number;
     scored: boolean;
     goDownDone: boolean;
     mission: string;
+    lastLightTurn: number;
+}
+
+export interface VirtualMonster extends Point {
+    id: number;
 }
 
 export interface CreatureMeta {
@@ -33,6 +37,10 @@ export interface CreatureVisible extends CreatureMeta, Point {
     vy: number;
     nextAngle?: number;
     nextDistance?: number;
+}
+
+export interface CreatureInvisible extends CreatureVisible {
+    lastTurnSeen: number;
 }
 
 export interface CreatureValidated {

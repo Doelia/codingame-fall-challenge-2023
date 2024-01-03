@@ -2,7 +2,7 @@ import {readline} from "../polyfill";
 import {fn} from "./utils";
 import {game} from "../main";
 import {fnBbox} from "./bbox";
-import {Direction} from "../types";
+import {Direction, Game} from "../types";
 
 export function initGame() {
     const creatureCount = parseInt(readline());
@@ -19,7 +19,7 @@ export function initGame() {
     }
 }
 
-export function readInputs() {
+export function readInputs(game: Game) {
 
 
     const myScore = parseInt(readline());
@@ -62,6 +62,7 @@ export function readInputs() {
             d.x = x;
             d.y = y;
             d.emergency = emergency;
+            d.lightIsOn = battery < d.battery;
             d.battery = battery;
             d.creaturesScanned = [];
         } else {
@@ -72,6 +73,7 @@ export function readInputs() {
                 angle: 90,
                 idCreatureTarget: null,
                 creaturesScanned: [],
+                lightIsOn: false,
                 scored: false,
                 goDownDone: false,
                 mission: null,
@@ -100,11 +102,11 @@ export function readInputs() {
             d.x = x;
             d.y = y;
             d.emergency = emergency;
-            d.lastLightTurn = battery < d.battery ? game.turnId-1 : d.lastLightTurn;
+            d.lightIsOn = battery < d.battery;
             d.battery = battery;
             d.creaturesScanned = [];
         } else {
-            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lastLightTurn: 0 });
+            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lightIsOn: false });
         }
     }
 

@@ -46,9 +46,24 @@ export const fnBbox = {
         );
     },
 
+    getMotorBbox(d: Drone): Bbox {
+        return {
+            xMin: d.x - 1400,
+            xMax: d.x + 1400,
+            yMin: d.y - 1400,
+            yMax: d.y + 1400,
+        }
+    },
 
-    enlargeWithMovement(bbox: CreatureBbox): CreatureBbox {
-        let speed = 400;
+
+    enlargeWithMovement(bbox: CreatureBbox, game: Game): CreatureBbox {
+
+        const jentendsUnMoteur = [...game.vsDrones, ...game.myDrones].some(d => {
+            return fnBbox.intersects(bbox, fnBbox.getMotorBbox(d));
+        });
+
+        let speed = jentendsUnMoteur ? 400 : 200;
+
         return {
             creatureId: bbox.creatureId,
             xMin: bbox.xMin - speed,

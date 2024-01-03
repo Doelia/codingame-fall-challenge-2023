@@ -1,7 +1,7 @@
 import {game} from "../main";
 import {fn} from "./utils";
 import {CreatureVisible, Drone, Point} from "../types";
-import {future} from "./future";
+import {fnFuture} from "./fnFuture";
 
 export const fnFaireFuir = {
 
@@ -26,7 +26,7 @@ export const fnFaireFuir = {
     },
 
     getPositionToBouh(c: CreatureVisible): Point {
-        const nextPosition = future.getFuturePosition(c);
+        const nextPosition = fnFuture.getFuturePosition(c);
         const space = 300;
         if (nextPosition.x < 5000) {
             return {x: nextPosition.x + space, y: nextPosition.y};

@@ -5,10 +5,11 @@ import {fnPoints} from "./functions/points";
 import {fnTarget} from "./functions/targets";
 import {fnAvoid} from "./functions/avoid";
 import {fnFaireFuir} from "./functions/faireFuir";
-import {future} from "./functions/future";
+import {fnFuture} from "./functions/fnFuture";
 import {down} from "./functions/down";
 import {fnBbox} from "./functions/bbox";
 import {fnLight} from "./functions/light";
+import {fnVirtualGame} from "./functions/virtualGame";
 
 export const game: Game = {
     turnId: 0,
@@ -35,24 +36,30 @@ initGame();
 
 while (1 === 1) {
 
+    let output = [];
+
     game.turnId++;
 
-    readInputs();
+    console.error('begin turn', game.turnId);
 
-    lastGame.creaturesVisibles
-        .map(future.applyNextPosition)
-        .map(c => future.computeNextPosition(c, game));
+    readInputs(game);
 
-    lastGame.creatureBboxes = lastGame.creatureBboxes.map(fnBbox.enlargeWithMovement);
+    // console.error('last game', lastGame.myDrones);
 
-    game.creaturesVisibles
-        .map(c => future.computeNextPosition(c, game));
+    fnVirtualGame.beginTurn(game);
 
-    const creaturesInvisible = lastGame.creaturesVisibles
-        .filter(c => !game.creaturesVisibles.map(fn.id).includes(c.creatureId));
+    // Update last game
+    // lastGame.creaturesVisibles
+    //     .map(fnFuture.applyNextPosition)
+    //     .map(c => fnFuture.computeNextPosition(c, game));
+    //
+    lastGame.creatureBboxes = lastGame.creatureBboxes.map(c => fnBbox.enlargeWithMovement(c, game));
+
+    fnVirtualGame.getCreatures()
+        .forEach(c => fnFuture.computeNextPosition(c, game, fnVirtualGame.getCreatures()));
 
     const [pointsIfIUpNow, pointsVsIfUpAtEnd ] = fnPoints.pointsIfIUpNow(lastGame);
-    console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
+    // console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
     game.creatureBboxes = fnBbox.compute(game, lastGame);
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
@@ -65,6 +72,10 @@ while (1 === 1) {
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
 
         if (d.y >= 7500) {
+            d.goDownDone = true;
+        }
+
+        if (d.emergency) {
             d.goDownDone = true;
         }
 
@@ -91,7 +102,7 @@ while (1 === 1) {
             if ((oldD.mission === 'SCORE' || pointsIfIUpNow > pointsVsIfUpAtEnd) && !d.scored) {
                 d.mission = 'SCORE';
             } else {
-                if (!target) {
+                if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
                     d.mission = 'FINISHED';
                 } else {
                     if (d.goDownDone) {
@@ -103,12 +114,12 @@ while (1 === 1) {
             }
         }
 
-        console.error('mission', d.mission, 'old', oldD.mission);
+        // console.error('mission', d.mission, 'old', oldD.mission);
     }
 
     // On recalcule les targets car les missions ont changés
     [t1, t2] = fnTarget.splitTargets(targets);
-    console.error('targets', t1, t2);
+    // console.error('targets', t1, t2);
 
     // On calcule les angles
     for (let d of game.myDrones) {
@@ -154,12 +165,13 @@ while (1 === 1) {
         // FAIRE PEUR
 
         if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
-            const fairePeurA = [...game.creaturesVisibles, ...creaturesInvisible]
+            const fairePeurA = fnVirtualGame.getCreatures()
+                .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
                 .filter(fn.isGentil)
                 .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
                 .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-                .filter(c => fnFaireFuir.ilEstPretDuBord(future.getFuturePosition(c)))
-                .filter(c => !future.vaDispaitre(c))
+                .filter(c => fnFaireFuir.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
+                .filter(c => !fnFuture.vaDispaitre(c))
 
             for (const s of fairePeurA) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
@@ -171,7 +183,7 @@ while (1 === 1) {
 
         // ÉVITER MONSTRES
 
-        const monsters = [...game.creaturesVisibles, ...creaturesInvisible]
+        const monsters = fnVirtualGame.getCreatures()
             .filter(fn.isMechant)
             .filter(c => fn.getDistance(c, d) < 2500);
 
@@ -204,17 +216,26 @@ while (1 === 1) {
         // SENDING
 
         let goTo = fn.forward(d, d.angle, distanceToMove);
-        d.x = goTo.x;
-        d.y = goTo.y;
 
         if (light && d.battery >= 5) {
             debug.push('LIGHT');
             d.lastLightTurn = game.turnId;
         }
 
-        console.log('MOVE ' + d.x + ' ' + d.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
+        output.push('MOVE ' + goTo.x + ' ' + goTo.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
 
     }
 
     lastGame = JSON.parse(JSON.stringify(game));
+    fnVirtualGame.endTurn(lastGame);
+
+    console.error('monsters', fnVirtualGame.getCreatures().filter(fn.isMechant).map(m => ({id: m.creatureId, x: m.x, y: m.y})));
+
+    output.forEach(o => console.log(o));
+
+    // console.error('copains', fnVirtualGame.getCreatures()
+    //     .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
+    //     .filter(fn.isGentil)
+    //     .map(m => ({id: m.creatureId, x: m.x, y: m.y, lastTurnSeen: m.lastTurnSeen})));
+
 }

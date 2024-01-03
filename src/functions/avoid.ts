@@ -1,6 +1,6 @@
 import {CreatureVisible, Drone, MyDrone} from "../types";
 import {fn} from "./utils";
-import {future} from "./future";
+import {fnFuture} from "./fnFuture";
 import {game} from "../main";
 
 export const fnAvoid = {
@@ -16,7 +16,7 @@ export const fnAvoid = {
                 let nearestDrone = allDrones
                     .filter(d => !d.emergency)
                     .filter(d => {
-                        let lightPuissance = d.lastLightTurn === game.turnId - 1 ? 2000 : 800;
+                        let lightPuissance = d.lightIsOn ? 2000 : 800;
                         return fn.getDistance(d, m) < lightPuissance
                     })
                     .sort((a, b) => fn.getDistance(a, m) - fn.getDistance(b, m))[0];
@@ -37,7 +37,7 @@ export const fnAvoid = {
             let distance = 100000;
             for (let monster of monsters) {
                 let nextMyPosition = fn.forward(d, angle);
-                let nextPositionMonster = future.getFuturePosition(monster)
+                let nextPositionMonster = fnFuture.getFuturePosition(monster)
                 distance = Math.min(distance, fn.getDistance(nextPositionMonster, nextMyPosition));
             }
             return distance;
@@ -47,7 +47,7 @@ export const fnAvoid = {
             for (let monster of monsters) {
                 for (let i = 0; i <= PAS; i++) {
                     let nextMyPosition = fn.forward(d, angle, i/PAS * 600);
-                    let nextPositionMonster = future.getFuturePosition(monster, i/PAS)
+                    let nextPositionMonster = fnFuture.getFuturePosition(monster, i/PAS)
                     let distance = fn.getDistance(nextPositionMonster, nextMyPosition);
                     if (distance <= 510) {
                         return true;
