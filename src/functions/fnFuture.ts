@@ -25,11 +25,11 @@ export const fnFuture = {
                 .sort((a, b) => fn.getDistance(a, c) - fn.getDistance(b, c))[0];
 
             if (nearestDrone) {
-                console.error(c.creatureId, c.x, c.y, 'attaque', nearestDrone.droneId, nearestDrone.x, nearestDrone.y, nearestDrone.lightIsOn);
+                // console.error(c.creatureId, c.x, c.y, 'attaque', nearestDrone.droneId, nearestDrone.x, nearestDrone.y, nearestDrone.lightIsOn);
                 c.nextAngle = fn.moduloAngle(fn.angleTo(c, nearestDrone));
                 c.nextDistance = Math.min(540, fn.getDistance(c, nearestDrone))
             } else if (nearestMonster) {
-                console.error(c.creatureId, c.x, c.y, 'fuit', nearestMonster.creatureId, nearestMonster.x, nearestMonster.y);
+                // console.error(c.creatureId, c.x, c.y, 'fuit', nearestMonster.creatureId, nearestMonster.x, nearestMonster.y);
                 c.nextAngle = fn.moduloAngle(fn.angleTo(nearestMonster, c));
                 c.nextDistance = 200;
             } else {
@@ -42,7 +42,6 @@ export const fnFuture = {
                     nextPosition = { x: c.x + c.vx, y: c.y - c.vy, }
                     c.nextAngle = fn.moduloAngle(fn.angleTo(c, nextPosition));
                     c.nextDistance = Math.min(270, fn.getDistance(c, nextPosition));
-                    // c.nextDistance = 200;
                 }
             }
         } else {

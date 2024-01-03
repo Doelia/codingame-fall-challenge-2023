@@ -7,7 +7,6 @@
 
 à tester :
 - enlargeWithMovement avec le moteur
-- calculer les méchants à tout instant une fois qu'ils ont été vu une fois
 
 ## Developpement
 

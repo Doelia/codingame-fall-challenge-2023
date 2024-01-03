@@ -8,7 +8,6 @@ export const fnVirtualGame = {
 
     jaiVuEnVrai: (c: CreatureVisible, turn: number) => {
         virtualCreatures = virtualCreatures.filter(m => m.creatureId !== c.creatureId);
-        // console.error('push', c.creatureId);
         virtualCreatures.push({
             ...c,
             lastTurnSeen: turn

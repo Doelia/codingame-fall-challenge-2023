@@ -59,7 +59,7 @@ export const fnPoints = {
         }
 
         return [
-            fnPoints.computePoints(myValidated, vsValidated, true),
+            fnPoints.computePoints(myValidated, vsValidated),
             fnPoints.computePoints(vsValidated, myValidated),
         ];
     },
@@ -68,7 +68,7 @@ export const fnPoints = {
         return (game.creaturesMetas.get(idCreature).type + 1) * (isFirst ? 2 : 1);
     },
 
-    computePoints(validated, vsValidated, log = false) {
+    computePoints(validated, vsValidated) {
 
         validated = validated
             .sort((a, b) => a.turn - b.turn)
@@ -77,11 +77,6 @@ export const fnPoints = {
         vsValidated = vsValidated
             .sort((a, b) => a.turn - b.turn)
             .filter((v, i, a) => a.map(fn.id).indexOf(v.creatureId) === i);
-
-        if (log) {
-            // console.error('myValidated', validated);
-            // console.error('vsValidated', vsValidated);
-        }
 
         let points = 0;
 

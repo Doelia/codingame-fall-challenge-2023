@@ -14,7 +14,6 @@ export const fnTarget = {
             return [null, null];
         }
 
-
         // console.error(targets.map(r => ({
         //     id: r, ...fnTarget.creatureIdToPoint(r),
         //     distance1: fn.getDistance(drone1, fnTarget.creatureIdToPoint(r)),

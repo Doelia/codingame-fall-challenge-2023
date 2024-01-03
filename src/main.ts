@@ -40,8 +40,6 @@ while (1 === 1) {
 
     game.turnId++;
 
-    console.error('begin turn', game.turnId);
-
     readInputs(game);
 
     // console.error('last game', lastGame.myDrones);
@@ -229,13 +227,14 @@ while (1 === 1) {
     lastGame = JSON.parse(JSON.stringify(game));
     fnVirtualGame.endTurn(lastGame);
 
-    console.error('monsters', fnVirtualGame.getCreatures().filter(fn.isMechant).map(m => ({id: m.creatureId, x: m.x, y: m.y})));
-
-    output.forEach(o => console.log(o));
+    // console.error('monsters', fnVirtualGame.getCreatures().filter(fn.isMechant).map(m => ({id: m.creatureId, x: m.x, y: m.y})));
 
     // console.error('copains', fnVirtualGame.getCreatures()
     //     .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
     //     .filter(fn.isGentil)
     //     .map(m => ({id: m.creatureId, x: m.x, y: m.y, lastTurnSeen: m.lastTurnSeen})));
+
+    output.forEach(o => console.log(o));
+
 
 }
