@@ -68,10 +68,6 @@ while (1 === 1) {
 
     const targets = fnTarget.getTargets();
 
-    const toAfraid = game.radars
-        .filter(r => fn.isGentil(game.creaturesMetas.get(r.creatureId)))
-        .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-
     // Missions accompiles
     for (let d of game.myDrones) {
 
@@ -110,11 +106,7 @@ while (1 === 1) {
                 d.mission = 'SCORE';
             } else {
                 if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
-                    if (myTimeToUp > vsTimeToUp && toAfraid.length > 0) {
-                        d.mission = 'CHASE';
-                    } else {
-                        d.mission = 'FINISHED';
-                    }
+                    d.mission = 'FINISHED';
                 } else {
                     if (d.goDownDone || !someoneBottomMe) {
                         d.mission = 'SEARCH';
@@ -168,13 +160,6 @@ while (1 === 1) {
             d.angle = 270;
         }
 
-        else if (d.mission === 'CHASE') {
-            const target = fnTarget.getNerestCreatureId(toAfraid, d);
-            const pointToTarget = fnTarget.creatureIdToPoint(target);
-            d.angle = fn.moduloAngle(fn.angleTo(d, pointToTarget));
-            debug.push('CHASE', target);
-        }
-
         else if (d.mission === 'SCORE') {
             debug.push('SCORE' + pointsIfIUpNow + '>' + pointsVsIfUpAtEnd);
             d.angle = 270;
@@ -182,7 +167,7 @@ while (1 === 1) {
 
         // FAIRE PEUR
 
-        if (d.mission === 'CHASE' || !fnAvoid.jeVaisMeFaireAgresser(d)) {
+        if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
             const todo = fnVirtualGame.getCreatures()
                 .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
                 .filter(fn.isGentil)
@@ -195,7 +180,7 @@ while (1 === 1) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
                 d.angle = fn.moduloAngle(fn.angleTo(d, pos));
                 distanceToMove = Math.max(600, fn.getDistance(d, pos));
-                debug.push('BOU', s.creatureId, distanceToMove);
+                debug.push('BOU', s.creatureId);
             }
         }
 

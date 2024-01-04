@@ -31,8 +31,6 @@ export const fnAvoid = {
 
     bestAngleAvoiding(monsters: CreatureVisible[], d: MyDrone, angleWanted: number, distanceToMove: number): number {
 
-        console.error('best angle avoiding', d.droneId, angleWanted, distanceToMove);
-
         let DEFAULT_PAS = 100;
 
         function distanceWithNerestMonster(d: Drone, angle: number) {
