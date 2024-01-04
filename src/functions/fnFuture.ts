@@ -33,14 +33,15 @@ export const fnFuture = {
             } else {
                 let nextPosition = { x: c.x + c.vx, y: c.y + c.vy, }
 
-                if (nextPosition.y > 2500) {
-                    c.nextAngle = fn.moduloAngle(fn.angleTo(c, nextPosition));
-                    c.nextDistance = Math.min(270, fn.getDistance(c, nextPosition));
-                } else {
-                    nextPosition = { x: c.x + c.vx, y: c.y - c.vy, }
-                    c.nextAngle = fn.moduloAngle(fn.angleTo(c, nextPosition));
-                    c.nextDistance = Math.min(270, fn.getDistance(c, nextPosition));
+                if (nextPosition.y < 2500) {
+                    nextPosition.y = c.y - c.vy;
                 }
+                if (nextPosition.x > 9999 || nextPosition.x < 0) {
+                    nextPosition.x = c.x - c.vx;
+                }
+
+                c.nextAngle = fn.moduloAngle(fn.angleTo(c, nextPosition));
+                c.nextDistance = Math.min(270, fn.getDistance(c, nextPosition));
             }
         } else {
 

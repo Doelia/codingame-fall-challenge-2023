@@ -20,10 +20,7 @@ export const fnFaireFuir = {
         return false;
     },
 
-    ilEstPretDuBord(p: Point) {
-        const padding = 2000;
-        return p.x < padding || p.x > 10000-padding;
-    },
+
 
     getPositionToBouh(c: CreatureVisible): Point {
         const nextPosition = fnFuture.getFuturePosition(c);

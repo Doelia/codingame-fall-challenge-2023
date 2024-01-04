@@ -142,13 +142,13 @@ while (1 === 1) {
 
         else if (d.mission === 'SEARCH') {
 
-            debug.push('T=' + target);
             let pointToTarget = fnTarget.creatureIdToPoint(target);
-            let angleToTarget = fn.angleTo(d, pointToTarget);
+            let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
+            debug.push('T=' + target);
 
-            if (oldD.mission !== d.mission) {
-                debug.push('NM');
-                d.angle = fn.moduloAngle(angleToTarget);
+            if (oldD.mission !== d.mission || fn.ilEstPretDuBord(d)) {
+                debug.push('DI');
+                d.angle = angleToTarget;
             } else {
                 d.angle = fn.moduloAngle(fn.moveToAngleAtMost(d.angle, angleToTarget, 45));
             }
@@ -174,12 +174,12 @@ while (1 === 1) {
                 .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
                 .filter(c => !fnFuture.vaDispaitre(c))
                 .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
-                .filter(c => fnFaireFuir.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
+                .filter(c => fn.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
 
             for (const s of todo) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
                 d.angle = fn.moduloAngle(fn.angleTo(d, pos));
-                distanceToMove = Math.max(600, fn.getDistance(d, pos));
+                distanceToMove = Math.min(600, fn.getDistance(d, pos));
                 debug.push('BOU', s.creatureId);
             }
         }

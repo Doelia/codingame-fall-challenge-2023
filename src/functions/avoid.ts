@@ -61,11 +61,12 @@ export const fnAvoid = {
             return null;
         }
 
-        let angles: {angle: number, distance: number, distanceBord: number}[] = [];
+        let angles: {angle: number, distance: number, wantedDelta: number, distanceBord: number}[] = [];
         for (let angle = 0; angle <= 360; angle += 5) {
             if (!jeMeFaisMiam(d, angle, monsters, DEFAULT_PAS, 600)) {
                 angles.push({
                     angle,
+                    wantedDelta: Math.abs(fn.substrateAngles(angle, angleWanted)),
                     distance: distanceWithNerestMonster(d, angle),
                     distanceBord: fn.paddingWithBord(fn.forward(d, angle))
                 });
@@ -88,11 +89,12 @@ export const fnAvoid = {
             if (b.distanceBord >= paddingPrefered && a.distanceBord < paddingPrefered) {
                 return 1;
             }
-            return Math.abs(fn.substrateAngles(a.angle, angleWanted)) - Math.abs(fn.substrateAngles(b.angle, angleWanted));
+            return a.wantedDelta - b.wantedDelta;
         });
 
-
         const best = angles.find(a => {
+
+            return true;
 
             const angle = a.angle;
 
@@ -112,7 +114,7 @@ export const fnAvoid = {
             futureMonsters.forEach(m => fnFuture.computeFutureAngle(m, [futureD], []));
             // futureMonsters.forEach(m => console.error('futureFuture m', m.creatureId, fnFuture.getFuturePosition(m), fn.getDistance(futureD, fnFuture.getFuturePosition(m)));
 
-            for (let nextAngle = 0; nextAngle <= 360; nextAngle += 30) {
+            for (let nextAngle = 0; nextAngle <= 360; nextAngle += 45) {
                 if (!jeMeFaisMiam(futureD, nextAngle, futureMonsters, 10, 600)) {
                     // console.error('myFutureFuture', fn.forward(futureD, nextAngle, 600));
                     // console.error('avec ', angle, nextAngle, ' je me fais pas miam next turn');
