@@ -91,6 +91,7 @@ while (1 === 1) {
     // calcul mission
     for (let d of game.myDrones) {
 
+        const someoneBottomMe = fnTarget.someoneBottomMe(d)
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
         const target = d.idx === 0 ? t1 : t2;
 
@@ -103,7 +104,7 @@ while (1 === 1) {
                 if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
                     d.mission = 'FINISHED';
                 } else {
-                    if (d.goDownDone) {
+                    if (d.goDownDone || !someoneBottomMe) {
                         d.mission = 'SEARCH';
                     } else {
                         d.mission = 'DOWN';
@@ -178,6 +179,7 @@ while (1 === 1) {
                 debug.push('BOU', s.creatureId);
             }
         }
+
 
         // ÉVITER MONSTRES
 
