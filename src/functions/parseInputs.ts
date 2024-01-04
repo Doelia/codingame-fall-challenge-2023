@@ -59,6 +59,7 @@ export function readInputs(game: Game) {
 
         let d = game.myDrones.find(v => v.droneId === droneId);
         if (d) {
+            d.isUpping = d.y > y;
             d.x = x;
             d.y = y;
             d.emergency = emergency;
@@ -71,7 +72,7 @@ export function readInputs(game: Game) {
                 droneId, x, y, emergency, battery,
                 lastLightTurn: 0,
                 angle: 90,
-                idCreatureTarget: null,
+                isUpping: false,
                 creaturesScanned: [],
                 lightIsOn: false,
                 scored: false,
@@ -99,6 +100,7 @@ export function readInputs(game: Game) {
 
         let d = game.vsDrones.find(v => v.droneId === droneId);
         if (d) {
+            d.isUpping = d.y > y;
             d.x = x;
             d.y = y;
             d.emergency = emergency;
@@ -106,7 +108,7 @@ export function readInputs(game: Game) {
             d.battery = battery;
             d.creaturesScanned = [];
         } else {
-            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lightIsOn: false });
+            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lightIsOn: false, isUpping: false });
         }
     }
 

@@ -1,11 +1,9 @@
-import {CreatureVisible, Game} from "../types";
+import {CreatureVisible, Drone, Game, Point} from "../types";
 import {fn} from "./utils";
 
 export const fnFuture = {
 
-    computeNextPosition(c: CreatureVisible, game: Game, creatures: CreatureVisible[]) {
-
-        const allDrones = [...game.myDrones, ...game.vsDrones];
+    computeFutureAngle(c: CreatureVisible, allDrones: Drone[], creatures: CreatureVisible[]) {
 
         if (fn.isMechant(c)) {
 
@@ -85,6 +83,7 @@ export const fnFuture = {
             c.y = nextPosition.y;
         }
         return c;
-    }
+    },
+
 
 }

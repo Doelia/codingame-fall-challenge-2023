@@ -42,6 +42,10 @@ while (1 === 1) {
 
     readInputs(game);
 
+    let vsTimeToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
+    let myTimeToUp = Math.max(...game.myDrones.map(fn.turnToUp));
+    console.error('time to up', myTimeToUp, vsTimeToUp);
+
     // console.error('last game', lastGame.myDrones);
 
     fnVirtualGame.beginTurn(game);
@@ -54,22 +58,26 @@ while (1 === 1) {
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(c => fnBbox.enlargeWithMovement(c, game));
 
     fnVirtualGame.getCreatures()
-        .forEach(c => fnFuture.computeNextPosition(c, game, fnVirtualGame.getCreatures()));
+        .forEach(c => fnFuture.computeFutureAngle(c, [...game.myDrones, ...game.vsDrones], fnVirtualGame.getCreatures()));
 
     const [pointsIfIUpNow, pointsVsIfUpAtEnd ] = fnPoints.pointsIfIUpNow(lastGame);
-    // console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
+    console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
     game.creatureBboxes = fnBbox.compute(game, lastGame);
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
 
     const targets = fnTarget.getTargets();
 
+    const toAfraid = game.radars
+        .filter(r => fn.isGentil(game.creaturesMetas.get(r.creatureId)))
+        .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
+
     // Missions accompiles
     for (let d of game.myDrones) {
 
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
 
-        if (d.y >= 7500) {
+        if (d.y >= 6500) {
             d.goDownDone = true;
         }
 
@@ -102,7 +110,11 @@ while (1 === 1) {
                 d.mission = 'SCORE';
             } else {
                 if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
-                    d.mission = 'FINISHED';
+                    if (myTimeToUp > vsTimeToUp && toAfraid.length > 0) {
+                        d.mission = 'CHASE';
+                    } else {
+                        d.mission = 'FINISHED';
+                    }
                 } else {
                     if (d.goDownDone || !someoneBottomMe) {
                         d.mission = 'SEARCH';
@@ -156,6 +168,13 @@ while (1 === 1) {
             d.angle = 270;
         }
 
+        else if (d.mission === 'CHASE') {
+            const target = fnTarget.getNerestCreatureId(toAfraid, d);
+            const pointToTarget = fnTarget.creatureIdToPoint(target);
+            d.angle = fn.moduloAngle(fn.angleTo(d, pointToTarget));
+            debug.push('CHASE', target);
+        }
+
         else if (d.mission === 'SCORE') {
             debug.push('SCORE' + pointsIfIUpNow + '>' + pointsVsIfUpAtEnd);
             d.angle = 270;
@@ -163,20 +182,20 @@ while (1 === 1) {
 
         // FAIRE PEUR
 
-        if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
-            const fairePeurA = fnVirtualGame.getCreatures()
+        if (d.mission === 'CHASE' || !fnAvoid.jeVaisMeFaireAgresser(d)) {
+            const todo = fnVirtualGame.getCreatures()
                 .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
                 .filter(fn.isGentil)
-                .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
                 .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
-                .filter(c => fnFaireFuir.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
                 .filter(c => !fnFuture.vaDispaitre(c))
+                .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
+                .filter(c => fnFaireFuir.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
 
-            for (const s of fairePeurA) {
+            for (const s of todo) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
                 d.angle = fn.moduloAngle(fn.angleTo(d, pos));
-                distanceToMove = fn.getDistance(d, pos);
-                debug.push('BOU', s.creatureId);
+                distanceToMove = Math.max(600, fn.getDistance(d, pos));
+                debug.push('BOU', s.creatureId, distanceToMove);
             }
         }
 
@@ -187,8 +206,8 @@ while (1 === 1) {
             .filter(fn.isMechant)
             .filter(c => fn.getDistance(c, d) < 2500);
 
-        const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle);
-        if (angleAvoiding !== d.angle) {
+        const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle, distanceToMove);
+        if (angleAvoiding) {
             debug.push('AVOID');
             d.angle = angleAvoiding;
             distanceToMove = 600;

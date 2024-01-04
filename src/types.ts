@@ -10,10 +10,10 @@ export interface Drone extends Point {
     battery: number;
     creaturesScanned?: number[];
     lightIsOn: boolean;
+    isUpping: boolean;
 }
 
 export interface MyDrone extends Drone {
-    idCreatureTarget?: number;
     angle: number;
     scored: boolean;
     goDownDone: boolean;

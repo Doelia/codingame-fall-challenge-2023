@@ -68,6 +68,19 @@ export const fnTarget = {
             })
     },
 
+    getNerestCreatureId(radars: Radar[], d: Drone): number {
+        const sorted = radars
+            .sort((a, b) => {
+                let pa = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === a.creatureId));
+                let pb = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === b.creatureId));
+                return fn.getDistance(d, pa) - fn.getDistance(d, pb);
+            });
+        if (sorted.length === 0) {
+            return null;
+        }
+        return sorted[0].creatureId;
+    },
+
     // Ne pas scanner les méchants, ni les créatures déjà scannées, ni ceux validés
     dontScanIt(): number[] {
         return [

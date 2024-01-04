@@ -26,7 +26,7 @@ export const fnVirtualGame = {
 
     endTurn(game: Game) {
         for (let c of virtualCreatures) {
-            fnFuture.computeNextPosition(c, game, virtualCreatures);
+            fnFuture.computeFutureAngle(c, [...game.myDrones, ...game.vsDrones], virtualCreatures);
         }
         virtualCreatures = virtualCreatures.filter(c => !fnFuture.vaDispaitre(c));
         for (let c of virtualCreatures) {
