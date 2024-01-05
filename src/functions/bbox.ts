@@ -1,4 +1,4 @@
-import {Bbox, CreatureBbox, CreatureMeta, Drone, Game, Point, Radar} from "../types";
+import {Bbox, CreatureBbox, CreatureMeta, CreatureVisible, Drone, Game, Point, Radar} from "../types";
 import {fn} from "./utils";
 import {game} from "../main";
 
@@ -6,7 +6,7 @@ export const fnBbox = {
 
     compute(game: Game, lastGame: Game): CreatureBbox[] {
 
-        let bboxes = [];
+        let bboxes: CreatureBbox[] = [];
 
         const idCreaturesOnMap = game.radars.map(fn.id).filter(fn.uniq);
         const creatures = game.creaturesMetasArr
@@ -14,6 +14,7 @@ export const fnBbox = {
             .filter(c => idCreaturesOnMap.includes(c.creatureId));
 
         for (const meta of creatures) {
+
 
             // On prend la vielle bbox
             let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === meta.creatureId);
@@ -33,18 +34,48 @@ export const fnBbox = {
                 bbox = fnBbox.getIntersection(bbox, radarBbox);
             }
 
+            // Si on le voit, on croise directement avec sa bbox précise
+            let visibleFish = game.creaturesVisibles.find(c => c.creatureId === meta.creatureId)
+            if (visibleFish) {
+                bbox = fnBbox.getIntersection(bbox, fnBbox.visibleFishesToBboxes(visibleFish));
+            }
+
             bboxes.push(bbox);
 
 
         }
 
         // bbox miroires
-        if (game.turnId < 3) {
-            bboxes = bboxes.map(b => fnBbox.getIntersection(b, fnBbox.applyMiror(bboxes.find(b2 => b2.creatureId === fnBbox.getCreatureIdMiroir(b.creatureId)))))
-        }
+
+        bboxes = bboxes.map(b => {
+            if (game.turnId <= fnBbox.turnToTakeEnigneEffect(game.creaturesMetas.get(b.creatureId))) {
+                const bboxMirorFish = bboxes.find(b2 => b2.creatureId === fnBbox.getCreatureIdMiroir(b.creatureId));
+                const bboxMirored = fnBbox.applyMiror(bboxMirorFish);
+                return fnBbox.getIntersection(b, bboxMirored);
+            } else {
+                console.error('dont apply mirror on', b.creatureId);
+                return b;
+            }
+        });
 
         return bboxes;
 
+    },
+
+    turnToTakeEnigneEffect(c: CreatureMeta): number {
+        if (c.type === 0) return 6;
+        if (c.type === 1) return 9;
+        if (c.type === 2) return 13;
+    },
+
+    visibleFishesToBboxes(c: CreatureVisible): CreatureBbox {
+        return {
+            creatureId: c.creatureId,
+            xMin: c.x,
+            xMax: c.x,
+            yMin: c.y,
+            yMax: c.y,
+        };
     },
 
     // return true if the two bboxes intersect
