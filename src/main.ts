@@ -43,9 +43,9 @@ while (1 === 1) {
     readInputs(game);
 
     // TIME TO UP
-    let vsTimeToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
-    let myTimeToUp = Math.max(...game.myDrones.map(fn.turnToUp));
-    console.error('time to up', myTimeToUp, vsTimeToUp);
+    // let vsTimeToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
+    // let myTimeToUp = Math.max(...game.myDrones.map(fn.turnToUp));
+    // console.error('time to up', myTimeToUp, vsTimeToUp);
 
     // VIRTUAL GGAME
     fnVirtualGame.beginTurn(game);
@@ -66,6 +66,7 @@ while (1 === 1) {
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
 
     const targets = fnTarget.getTargets();
+    console.error('targets', targets);
 
     // Missions accompiles
     for (let d of game.myDrones) {
@@ -131,12 +132,28 @@ while (1 === 1) {
         let distanceToMove = 600;
         const target = d.idx === 0 ? t1 : t2;
         let debug = [];
+        let forceLightFoClose = false;
 
         // Compute angle
 
         if (d.mission === 'DOWN') {
+
+            const closeInvisbleCreatureToScan = game.creatureBboxes
+                .filter(fnBbox.isVeryPrecise)
+                .filter(b => fn.getDistance(d, fnBbox.getCenter(b)) > 2000)
+                .filter(b => fn.angleIsGoingBottom(fn.angleTo(d, fnBbox.getCenter(b))))
+                .find(b => fn.getDistance(d, fnBbox.getCenter(b)) < 2000 + 600);
+
             const mostDown = down.getTarget2(d, game);
-            if (mostDown) {
+
+            if (closeInvisbleCreatureToScan) {
+                let pointToTarget = fnBbox.getCenter(closeInvisbleCreatureToScan);
+                let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
+                d.angle = angleToTarget;
+                debug.push('CLOSE='+closeInvisbleCreatureToScan.creatureId);
+                forceLightFoClose = true;
+            }
+            else if (mostDown) {
                 let pointToTarget = mostDown.centerPadded;
                 let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
                 d.angle = angleToTarget;
@@ -176,7 +193,7 @@ while (1 === 1) {
 
         // FAIRE PEUR
 
-        if (!fnAvoid.jeVaisMeFaireAgresser(d)) {
+        if (!fnAvoid.jeVaisMeFaireAgresser(d) && !forceLightFoClose) {
             const todo = fnVirtualGame.getCreatures()
                 .filter(c => c.lastTurnSeen > lastGame.turnId - 3)
                 .filter(fn.isGentil)
@@ -187,7 +204,12 @@ while (1 === 1) {
 
             for (const s of todo) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
-                d.angle = fn.moduloAngle(fn.angleTo(d, pos));
+                let angle = fn.moduloAngle(fn.angleTo(d, pos));
+                if (d.mission === 'SCORE' && !fn.angleIsGoingTop(angle)) { // TODO seed 8839698655991754000 turn 14
+                    continue;
+                }
+                console.error(d.mission, angle);
+                d.angle = angle;
                 distanceToMove = Math.min(600, fn.getDistance(d, pos));
                 debug.push('BOU', s.creatureId);
             }
@@ -202,6 +224,7 @@ while (1 === 1) {
 
         const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle, distanceToMove);
         if (angleAvoiding !== null) {
+            forceLightFoClose = false;
             debug.push('AVOID');
             d.angle = angleAvoiding;
             distanceToMove = 600;
@@ -219,7 +242,7 @@ while (1 === 1) {
         }
 
         if (
-            ((game.turnId - d.lastLightTurn >= 3) || (imBottom && someoneBottomMe))
+            ((game.turnId - d.lastLightTurn >= 3) || (imBottom && someoneBottomMe) || forceLightFoClose)
             && probablySomeoneInMyMaxLight
             && d.y > 2500
         ) {

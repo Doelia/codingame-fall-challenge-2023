@@ -50,10 +50,10 @@ export const fnBbox = {
         bboxes = bboxes.map(b => {
             if (game.turnId <= fnBbox.turnToTakeEnigneEffect(game.creaturesMetas.get(b.creatureId))) {
                 const bboxMirorFish = bboxes.find(b2 => b2.creatureId === fnBbox.getCreatureIdMiroir(b.creatureId));
+                if (!bboxMirorFish) return b;
                 const bboxMirored = fnBbox.applyMiror(bboxMirorFish);
                 return fnBbox.getIntersection(b, bboxMirored);
             } else {
-                console.error('dont apply mirror on', b.creatureId);
                 return b;
             }
         });
@@ -66,6 +66,10 @@ export const fnBbox = {
         if (c.type === 0) return 6;
         if (c.type === 1) return 9;
         if (c.type === 2) return 13;
+    },
+
+    isVeryPrecise(c: Bbox) {
+        return c.xMax === c.xMin && c.yMax === c.yMin;
     },
 
     visibleFishesToBboxes(c: CreatureVisible): CreatureBbox {

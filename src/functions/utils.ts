@@ -32,6 +32,9 @@ export const fn = {
     },
     ilEstPretDuBordX(p: Point, padding = 2000) { return p.x < padding || p.x > 10000-padding; },
     ilestPRetDuBordXY(p: Point, padding = 2000) { return p.x < padding || p.x > 10000-padding || p.y < padding || p.y > 10000-padding; },
+    angleIsGoingBottom(angle: number): boolean { return angle > 0+30 && angle < 180-30; },
+    angleIsGoingTop(angle: number): boolean { return angle > 180+30 && angle < 360-30; },
+    distanceXFromCenter(p: Point): number { return Math.abs(p.x - 5000); },
     substrateAngles(h1: number, h2: number) {
         if (h1 < 0 || h1 >= 360) {
             h1 = (h1 % 360 + 360) % 360;

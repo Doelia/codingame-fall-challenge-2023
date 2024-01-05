@@ -62,9 +62,13 @@ export const fnTarget = {
             .map(fn.id)
             .filter(fn.uniq)
             .sort((a, b) => {
-                let pa = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === a));
-                let pb = fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === b));
-                return pb.y - pa.y;
+                if (game.creaturesMetas.get(a).type > game.creaturesMetas.get(b).type) {
+                    return -1;
+                }
+                if (game.creaturesMetas.get(a).type < game.creaturesMetas.get(b).type) {
+                    return 1;
+                }
+                return fn.distanceXFromCenter(fnTarget.creatureIdToPoint(b)) - fn.distanceXFromCenter(fnTarget.creatureIdToPoint(a));
             })
     },
 
