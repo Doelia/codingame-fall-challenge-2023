@@ -1,7 +1,7 @@
 import {fn} from "./utils";
 import {game} from "../main";
 import {fnBbox} from "./bbox";
-import {CreatureBbox, Drone, MyDrone, Point, Radar} from "../types";
+import {CreatureBbox, Drone, Game, MyDrone, Point, Radar} from "../types";
 
 export const fnTarget = {
 
@@ -51,6 +51,66 @@ export const fnTarget = {
     creatureIdToPoint(creatureId: number): Point {
         return fnBbox.getCenter(game.creatureBboxes.find(c => c.creatureId === creatureId));
     },
+
+    oneOneBottomLeftScanned(): boolean {
+        const creaturesLeftToRight = game.creatureBboxes
+            .filter(v => game.creaturesMetas.get(v.creatureId).type === 2)
+            .sort((a, b) => fnBbox.getCenter(a).x - fnBbox.getCenter(b).x)
+            .map(fn.id);
+
+        const scanned = [
+            ...fnTarget.myScanIds(),
+            ...game.creaturesValidated.map(fn.id),
+        ];
+
+        if (creaturesLeftToRight.length <= 2) {
+            return true;
+        }
+
+        return scanned.includes(creaturesLeftToRight[0]) || scanned.includes(creaturesLeftToRight[1]);
+    },
+
+    atLeastOneBottomRightScanned(): boolean {
+        const creaturesLeftToRight = game.creatureBboxes
+            .filter(v => game.creaturesMetas.get(v.creatureId).type === 2)
+            .sort((a, b) => fnBbox.getCenter(a).x - fnBbox.getCenter(b).x)
+            .map(fn.id);
+
+        const scanned = [
+            ...fnTarget.myScanIds(),
+            ...game.creaturesValidated.map(fn.id),
+        ];
+
+        console.error(creaturesLeftToRight);
+
+        if (creaturesLeftToRight.length <= 2) {
+            return true;
+        }
+
+        return scanned.includes(creaturesLeftToRight[creaturesLeftToRight.length - 2]) || scanned.includes(creaturesLeftToRight[creaturesLeftToRight.length -1]);
+    },
+
+    getMostX(d: MyDrone, type: number, game: Game): {creatureId: number, center: Point, centerPadded: Point} {
+        const creaturesLeftToRight = game.creatureBboxes
+            .filter(v => game.creaturesMetas.get(v.creatureId).type === type)
+            .filter(v => !fnTarget.dontScanIt().includes(v.creatureId))
+            .sort((a, b) => fnBbox.getCenter(a).x - fnBbox.getCenter(b).x);
+
+        if (creaturesLeftToRight.length === 0) {
+            return null;
+        }
+
+        let bbox = d.imLeft ? creaturesLeftToRight[0] : creaturesLeftToRight[creaturesLeftToRight.length - 1];
+
+        const center = fnBbox.getCenter(bbox);
+
+        return {
+            creatureId: bbox.creatureId,
+            center,
+            centerPadded: fn.eloignerDuBord(center, 2000),
+        };
+    },
+
 
     getTargets(): number[] {
 

@@ -53,7 +53,7 @@ while (1 === 1) {
     // BBOXES
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(c => fnBbox.enlargeWithMovement(c, game));
     game.creatureBboxes = fnBbox.compute(game, lastGame);
-    console.error(game.creatureBboxes);
+    // console.error(game.creatureBboxes);
 
     // FUTURE
     fnVirtualGame.getCreatures()
@@ -68,12 +68,15 @@ while (1 === 1) {
     const targets = fnTarget.getTargets();
     console.error('targets', targets);
 
+    console.error('oneOneBottomLeftScanned', fnTarget.oneOneBottomLeftScanned());
+    console.error('oneOneBottomRightScanned', fnTarget.atLeastOneBottomRightScanned());
+
     // Missions accompiles
     for (let d of game.myDrones) {
 
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
 
-        if (d.y >= 6500) {
+        if (d.y >= 8500) {
             d.goDownDone = true;
         }
 
@@ -82,6 +85,15 @@ while (1 === 1) {
         }
 
         if (oldD.mission === 'SCORE' && d.y <= 500) {
+            d.scored = true;
+            d.goDownDone = true;
+        }
+
+        if (oldD.mission === 'UP') {
+            d.goDownDone = true;
+        }
+
+        if (oldD.mission === 'UP' && d.y <= 500) {
             d.scored = true;
             d.goDownDone = true;
         }
@@ -102,7 +114,13 @@ while (1 === 1) {
         if (d.emergency) {
             d.mission = 'EMERGENCY';
         } else {
-            if ((oldD.mission === 'SCORE' || pointsIfIUpNow > pointsVsIfUpAtEnd) && !d.scored) {
+            if (!d.scored && d.imLeft && fnTarget.oneOneBottomLeftScanned()) {
+                d.mission = 'UP';
+            }
+            else if (!d.scored && !d.imLeft && fnTarget.atLeastOneBottomRightScanned() && targets.length > 0) {
+                d.mission = 'SEARCH';
+            }
+            else if ((oldD.mission === 'SCORE' || pointsIfIUpNow > pointsVsIfUpAtEnd) && !d.scored) {
                 d.mission = 'SCORE';
             } else {
                 if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
@@ -117,7 +135,7 @@ while (1 === 1) {
             }
         }
 
-        // console.error('mission', d.mission, 'old', oldD.mission);
+        console.error('mission', d.mission, 'old', oldD.mission);
     }
 
     // On recalcule les targets car les missions ont changés
@@ -134,17 +152,48 @@ while (1 === 1) {
         let debug = [];
         let forceLightFoClose = false;
 
+        const closeInvisbleCreatureToScan = game.creatureBboxes
+            .filter(fnBbox.isVeryPrecise)
+            .filter(b => !fnTarget.dontScanIt().includes(b.creatureId))
+            .filter(b => fn.getDistance(d, fnBbox.getCenter(b)) > 2000)
+            .filter(b => fn.angleIsGoingBottom(fn.angleTo(d, fnBbox.getCenter(b))))
+            .find(b => fn.getDistance(d, fnBbox.getCenter(b)) < 2000 + 600);
+
         // Compute angle
 
-        if (d.mission === 'DOWN') {
+        if (d.mission === 'UP') {
 
-            const closeInvisbleCreatureToScan = game.creatureBboxes
-                .filter(fnBbox.isVeryPrecise)
-                .filter(b => fn.getDistance(d, fnBbox.getCenter(b)) > 2000)
-                .filter(b => fn.angleIsGoingBottom(fn.angleTo(d, fnBbox.getCenter(b))))
-                .find(b => fn.getDistance(d, fnBbox.getCenter(b)) < 2000 + 600);
+            if (closeInvisbleCreatureToScan) {
+                let pointToTarget = fnBbox.getCenter(closeInvisbleCreatureToScan);
+                let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
+                d.angle = angleToTarget;
+                debug.push('CLOSE='+closeInvisbleCreatureToScan.creatureId);
+                forceLightFoClose = true;
+            } else {
+                let target = null; // trop direct 1859577925107042800
+                if (d.y > 5000) {
+                    target = fnTarget.getMostX(d, 1, game);
+                } else if (d.y > 2500) {
+                    target = fnTarget.getMostX(d, 0, game);
+                }
 
-            const mostDown = down.getTarget2(d, game);
+                if (target && (Math.abs(d.x - target.centerPadded.x) < 3000)) {
+                    let pointToTarget = target.centerPadded;
+                    let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
+                    d.angle = angleToTarget;
+                    debug.push('UP=' + target.creatureId);
+                } else {
+                    d.angle = 270;
+                    debug.push('UP');
+                }
+            }
+
+
+        }
+
+        else if (d.mission === 'DOWN') {
+
+            const mostDown = fnTarget.getMostX(d, 2, game);
 
             if (closeInvisbleCreatureToScan) {
                 let pointToTarget = fnBbox.getCenter(closeInvisbleCreatureToScan);
@@ -158,7 +207,7 @@ while (1 === 1) {
                 let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
                 d.angle = angleToTarget;
                 console.error('down', d.droneId, mostDown, pointToTarget.x, pointToTarget.y, angleToTarget);
-                debug.push('DOWN='+mostDown.creatureId);
+                debug.push('DOWN='+mostDown.creatureId); // TODO 186326453458965950
             } else {
                 d.angle = 270;
                 debug.push('DOWN_270');
@@ -170,6 +219,7 @@ while (1 === 1) {
             let pointToTarget = fnTarget.creatureIdToPoint(target);
             let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
             debug.push('T=' + target);
+            console.error('search', d.droneId, target, pointToTarget.x, pointToTarget.y, angleToTarget);
 
             // if (oldD.mission !== d.mission || fn.ilEstPretDuBord(d)) {
             if (oldD.mission !== d.mission || fn.ilEstPretDuBordX(d)) {
@@ -205,7 +255,7 @@ while (1 === 1) {
             for (const s of todo) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
                 let angle = fn.moduloAngle(fn.angleTo(d, pos));
-                if (d.mission === 'SCORE' && !fn.angleIsGoingTop(angle)) { // TODO seed 8839698655991754000 turn 14
+                if ((d.mission === 'UP' || d.mission === 'SCORE') && !fn.angleIsGoingTop(angle)) {
                     continue;
                 }
                 console.error(d.mission, angle);
@@ -224,7 +274,6 @@ while (1 === 1) {
 
         const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle, distanceToMove);
         if (angleAvoiding !== null) {
-            forceLightFoClose = false;
             debug.push('AVOID');
             d.angle = angleAvoiding;
             distanceToMove = 600;
@@ -256,6 +305,10 @@ while (1 === 1) {
         if (light && d.battery >= 5) {
             debug.push('LIGHT');
             d.lastLightTurn = game.turnId;
+        }
+
+        if (goTo.y < 500) {
+            goTo.y = 500;
         }
 
         output.push('MOVE ' + goTo.x + ' ' + goTo.y + ' ' + (light?1:0) + ' ' + debug.join(' '))
