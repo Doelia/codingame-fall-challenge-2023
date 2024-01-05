@@ -9,28 +9,39 @@ export const fnBbox = {
         let bboxes = [];
 
         const idCreaturesOnMap = game.radars.map(fn.id).filter(fn.uniq);
-
         const creatures = game.creaturesMetasArr
             .filter(fn.isGentil)
             .filter(c => idCreaturesOnMap.includes(c.creatureId));
 
         for (const meta of creatures) {
-            let bbox = fnBbox.getBboxMeta(meta);
+
+            // On prend la vielle bbox
+            let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === meta.creatureId);
+
+            // S'il y en a pas, c'est que c'est le premier tour de jeu, on cacule
+            if (!oldBbox) oldBbox = fnBbox.getBboxInit(meta);
+
+            let bbox = oldBbox;
+
+            // On intersecte avec la bbox de vie
+            bbox = fnBbox.getIntersection(bbox, fnBbox.getBboxMeta(meta));
+
+            // On intersecte avec les bboxes des radars
             for (let r of game.radars.filter(r => r.creatureId === meta.creatureId)) {
                 const d = game.myDrones.find(d => d.droneId === r.droneId);
-                bbox = fnBbox.getIntersection(bbox, fnBbox.getBboxRadar(d, r));
+                let radarBbox = fnBbox.getBboxRadar(d, r);
+                bbox = fnBbox.getIntersection(bbox, radarBbox);
             }
+
             bboxes.push(bbox);
+
+
         }
 
-        bboxes = bboxes.map(bbox => {
-            let oldBbox = lastGame.creatureBboxes.find(b => b.creatureId === bbox.creatureId);
-            if (oldBbox) {
-                return fnBbox.getIntersection(bbox, oldBbox);
-            } else {
-                return bbox;
-            }
-        });
+        // bbox miroires
+        if (game.turnId < 3) {
+            bboxes = bboxes.map(b => fnBbox.getIntersection(b, fnBbox.applyMiror(bboxes.find(b2 => b2.creatureId === fnBbox.getCreatureIdMiroir(b.creatureId)))))
+        }
 
         return bboxes;
 
@@ -55,6 +66,15 @@ export const fnBbox = {
         }
     },
 
+    applyMiror(bbox: CreatureBbox): CreatureBbox {
+        return {
+            creatureId: fnBbox.getCreatureIdMiroir(bbox.creatureId),
+            xMin: 9999 - bbox.xMax,
+            xMax: 9999 - bbox.xMin,
+            yMin: bbox.yMin,
+            yMax: bbox.yMax,
+        }
+    },
 
     enlargeWithMovement(bbox: CreatureBbox, game: Game): CreatureBbox {
 
@@ -93,6 +113,35 @@ export const fnBbox = {
             xMax: Math.min(a.xMax, b.xMax),
             yMin: Math.max(a.yMin, b.yMin),
             yMax: Math.min(a.yMax, b.yMax),
+        }
+    },
+
+    getCreatureIdMiroir(id: number): number {
+        switch (id) {
+            case 10: return 11;
+            case 11: return 10;
+            case 12: return 13;
+            case 13: return 12;
+            case 14: return 15;
+            case 15: return 14;
+            case 4: return 5;
+            case 5: return 4;
+            case 6: return 7;
+            case 7: return 6;
+            case 8: return 9;
+            case 9: return 8;
+        }
+    },
+
+    getBboxInit(c: CreatureMeta): CreatureBbox {
+        const [yMin, yMax] = fnBbox.fishTypeToMinMaxY(c.type);
+
+        return {
+            creatureId: c.creatureId,
+            xMin: 1000,
+            xMax: 9000,
+            yMin: yMin + 500,
+            yMax : yMax - 1000,
         }
     },
 

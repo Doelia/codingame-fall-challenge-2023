@@ -7,6 +7,8 @@
 - idées remontée : mesure le score avec les distances
 - ne pas remonter jusqu'a y=0
 - idée start : s'il remonte et que je perd en score, chasser à tout prix
+- Mieux cibler les bbox de départ
+- 
 
 à tester :
 - enlargeWithMovement avec le moteur

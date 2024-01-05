@@ -38,32 +38,31 @@ while (1 === 1) {
 
     let output = [];
 
+    // READ INPUTS
     game.turnId++;
-
     readInputs(game);
 
+    // TIME TO UP
     let vsTimeToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
     let myTimeToUp = Math.max(...game.myDrones.map(fn.turnToUp));
     console.error('time to up', myTimeToUp, vsTimeToUp);
 
-    // console.error('last game', lastGame.myDrones);
-
+    // VIRTUAL GGAME
     fnVirtualGame.beginTurn(game);
 
-    // Update last game
-    // lastGame.creaturesVisibles
-    //     .map(fnFuture.applyNextPosition)
-    //     .map(c => fnFuture.computeNextPosition(c, game));
-    //
+    // BBOXES
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(c => fnBbox.enlargeWithMovement(c, game));
+    game.creatureBboxes = fnBbox.compute(game, lastGame);
+    console.error(game.creatureBboxes);
 
+    // FUTURE
     fnVirtualGame.getCreatures()
         .forEach(c => fnFuture.computeFutureAngle(c, [...game.myDrones, ...game.vsDrones], fnVirtualGame.getCreatures()));
 
+    // SCORES
     const [pointsIfIUpNow, pointsVsIfUpAtEnd ] = fnPoints.pointsIfIUpNow(lastGame);
     console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
-    game.creatureBboxes = fnBbox.compute(game, lastGame);
     // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
 
     const targets = fnTarget.getTargets();
@@ -136,8 +135,17 @@ while (1 === 1) {
         // Compute angle
 
         if (d.mission === 'DOWN') {
-            d.angle = down.getDownAngle(d)
-            debug.push('DOWN');
+            const mostDown = down.getTarget2(d, game);
+            if (mostDown) {
+                let pointToTarget = mostDown.centerPadded;
+                let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
+                d.angle = angleToTarget;
+                console.error('down', d.droneId, mostDown, pointToTarget.x, pointToTarget.y, angleToTarget);
+                debug.push('DOWN='+mostDown.creatureId);
+            } else {
+                d.angle = 270;
+                debug.push('DOWN_270');
+            }
         }
 
         else if (d.mission === 'SEARCH') {
@@ -146,7 +154,8 @@ while (1 === 1) {
             let angleToTarget =  fn.moduloAngle(fn.angleTo(d, pointToTarget));
             debug.push('T=' + target);
 
-            if (oldD.mission !== d.mission || fn.ilEstPretDuBord(d)) {
+            // if (oldD.mission !== d.mission || fn.ilEstPretDuBord(d)) {
+            if (oldD.mission !== d.mission || fn.ilEstPretDuBordX(d)) {
                 debug.push('DI');
                 d.angle = angleToTarget;
             } else {
@@ -174,7 +183,7 @@ while (1 === 1) {
                 .filter(c => !fnFaireFuir.isScannedByVs(c.creatureId))
                 .filter(c => !fnFuture.vaDispaitre(c))
                 .filter(c => fnFaireFuir.estProcheDeMoi(d, c))
-                .filter(c => fn.ilEstPretDuBord(fnFuture.getFuturePosition(c)))
+                .filter(c => fn.ilEstPretDuBordX(fnFuture.getFuturePosition(c)))
 
             for (const s of todo) {
                 const pos = fnFaireFuir.getPositionToBouh(s);
@@ -192,7 +201,7 @@ while (1 === 1) {
             .filter(c => fn.getDistance(c, d) < 2500);
 
         const angleAvoiding = fnAvoid.bestAngleAvoiding(monsters, d, d.angle, distanceToMove);
-        if (angleAvoiding) {
+        if (angleAvoiding !== null) {
             debug.push('AVOID');
             d.angle = angleAvoiding;
             distanceToMove = 600;

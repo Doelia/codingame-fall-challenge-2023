@@ -24,7 +24,14 @@ export const fn = {
     wiggle: (angle: number, maxAngle: number): number => fn.moduloAngle(angle + (Math.random() * maxAngle) - (Math.random() * maxAngle)),
     moduloAngle: (angle: number): number => (angle % 360) > 0 ? (angle % 360) : (angle % 360) + 360,
     paddingWithBord(p: Point): number { if (p.x > 5000) { return 9999 - p.x; } else { return p.x; } },
-    ilEstPretDuBord(p: Point, padding = 2000) { return p.x < padding || p.x > 10000-padding; },
+    eloignerDuBord(p: Point, padding = 2000): Point {
+        return {
+            x: Math.max(padding, Math.min(9999-padding, p.x)),
+            y: Math.max(padding, Math.min(9999-padding, p.y)),
+        }
+    },
+    ilEstPretDuBordX(p: Point, padding = 2000) { return p.x < padding || p.x > 10000-padding; },
+    ilestPRetDuBordXY(p: Point, padding = 2000) { return p.x < padding || p.x > 10000-padding || p.y < padding || p.y > 10000-padding; },
     substrateAngles(h1: number, h2: number) {
         if (h1 < 0 || h1 >= 360) {
             h1 = (h1 % 360 + 360) % 360;

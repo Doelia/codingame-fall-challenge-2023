@@ -72,6 +72,7 @@ export function readInputs(game: Game) {
                 droneId, x, y, emergency, battery,
                 lastLightTurn: 0,
                 angle: 90,
+                imLeft: x < 5000,
                 isUpping: false,
                 creaturesScanned: [],
                 lightIsOn: false,
@@ -86,6 +87,14 @@ export function readInputs(game: Game) {
         // d.creaturesScanned = [];
         // }
 
+    }
+
+    if (game.myDrones[0].x < game.myDrones[1].x) {
+        game.myDrones[0].imLeft = true;
+        game.myDrones[1].imLeft = false;
+    } else {
+        game.myDrones[0].imLeft = false;
+        game.myDrones[1].imLeft = true;
     }
 
     // Ses drones

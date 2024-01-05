@@ -18,6 +18,7 @@ export interface MyDrone extends Drone {
     scored: boolean;
     goDownDone: boolean;
     mission: string;
+    imLeft: boolean;
     lastLightTurn: number;
 }
 
