@@ -78,7 +78,7 @@ export const fnAvoid = {
             return null;
         }
 
-        const paddingPrefered = 500;
+        const paddingPrefered = 400;
 
         // angles = angles.filter(a => a.distanceBord > paddingPrefered);
 

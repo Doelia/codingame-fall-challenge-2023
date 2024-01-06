@@ -132,6 +132,26 @@ export const fnTarget = {
             })
     },
 
+    getTargetsPerTypeThenDistance(d: MyDrone): number[] {
+        const dontScanIt = fnTarget.dontScanIt();
+
+        return game.radars
+            .filter(r => fn.isGentil(game.creaturesMetas.get(r.creatureId)))
+            .filter(r => !dontScanIt.includes(r.creatureId))
+            .map(fn.id)
+            .filter(fn.uniq)
+            .sort((a, b) => {
+                if (game.creaturesMetas.get(a).type > game.creaturesMetas.get(b).type) {
+                    return -1;
+                }
+                if (game.creaturesMetas.get(a).type < game.creaturesMetas.get(b).type) {
+                    return 1;
+                }
+                return fn.getDistance(d, fnTarget.creatureIdToPoint(a)) - fn.getDistance(d, fnTarget.creatureIdToPoint(b));
+            })
+
+    },
+
     getNerestCreatureId(radars: Radar[], d: Drone): number {
         const sorted = radars
             .sort((a, b) => {

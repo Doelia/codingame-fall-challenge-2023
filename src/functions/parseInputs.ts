@@ -89,12 +89,14 @@ export function readInputs(game: Game) {
 
     }
 
-    if (game.myDrones[0].x < game.myDrones[1].x) {
-        game.myDrones[0].imLeft = true;
-        game.myDrones[1].imLeft = false;
-    } else {
-        game.myDrones[0].imLeft = false;
-        game.myDrones[1].imLeft = true;
+    if (game.turnId === 1) {
+        if (game.myDrones[0].x < game.myDrones[1].x) {
+            game.myDrones[0].imLeft = true;
+            game.myDrones[1].imLeft = false;
+        } else {
+            game.myDrones[0].imLeft = false;
+            game.myDrones[1].imLeft = true;
+        }
     }
 
     // Ses drones
@@ -117,7 +119,17 @@ export function readInputs(game: Game) {
             d.battery = battery;
             d.creaturesScanned = [];
         } else {
-            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lightIsOn: false, isUpping: false });
+            game.vsDrones.push({ idx: i, droneId, x, y, emergency, battery, creaturesScanned: [], lightIsOn: false, isUpping: false, imLeft: x < 5000 });
+        }
+    }
+
+    if (game.turnId === 1) {
+        if (game.vsDrones[0].x < game.vsDrones[1].x) {
+            game.vsDrones[0].imLeft = true;
+            game.vsDrones[1].imLeft = false;
+        } else {
+            game.vsDrones[0].imLeft = false;
+            game.vsDrones[1].imLeft = true;
         }
     }
 
