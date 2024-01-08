@@ -11,7 +11,7 @@ Fight example : https://www.codingame.com/replay/763335946
 
 ## Results
 
-My bot finished at 84th position out of 20,593 participants. I participated team with my mates from Poisson Soluble.
+My bot finished at 84th position out of 20,593 participants. I participated in team with my mates from Poisson Soluble.
 
 https://www.codingame.com/contests/fall-challenge-2023/top-companies
 
