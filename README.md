@@ -4,7 +4,7 @@
 
 Bot competition organized by Codin Game. We had to program the behavior of drones to scan fish in an aquarium more quickly than their opponents.
 
-Fight example : https://www.codingame.com/replay/763335946
+Fight example : https://youtu.be/0OFj79LYrRA
 
 
 ![](_docs/arena.png)
