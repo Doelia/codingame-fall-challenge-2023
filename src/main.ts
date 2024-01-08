@@ -6,7 +6,6 @@ import {fnTarget} from "./functions/targets";
 import {fnAvoid} from "./functions/avoid";
 import {fnFaireFuir} from "./functions/faireFuir";
 import {fnFuture} from "./functions/fnFuture";
-import {down} from "./functions/down";
 import {fnBbox} from "./functions/bbox";
 import {fnLight} from "./functions/light";
 import {fnVirtualGame} from "./functions/virtualGame";
@@ -42,18 +41,12 @@ while (1 === 1) {
     game.turnId++;
     readInputs(game);
 
-    // TIME TO UP
-    // let vsTimeToUp = Math.max(...game.vsDrones.map(fn.turnToUp));
-    // let myTimeToUp = Math.max(...game.myDrones.map(fn.turnToUp));
-    // console.error('time to up', myTimeToUp, vsTimeToUp);
-
     // VIRTUAL GGAME
     fnVirtualGame.beginTurn(game);
 
     // BBOXES
     lastGame.creatureBboxes = lastGame.creatureBboxes.map(c => fnBbox.enlargeWithMovement(c, game));
     game.creatureBboxes = fnBbox.compute(game, lastGame);
-    // console.error(game.creatureBboxes);
 
     // FUTURE
     fnVirtualGame.getCreatures()
@@ -63,13 +56,7 @@ while (1 === 1) {
     const [pointsIfIUpNow, pointsVsIfUpAtEnd ] = fnPoints.pointsIfIUpNow(lastGame);
     console.error(pointsIfIUpNow, 'vs', pointsVsIfUpAtEnd);
 
-    // console.error('bbox', game.creatureBboxes.map(b => ({ ...b, ...fnBbox.getCenter(b) })))
-
     const targets = fnTarget.getTargets();
-    console.error('targets', targets);
-
-    console.error('oneOneBottomLeftScanned', fnTarget.oneOneBottomLeftScanned());
-    console.error('oneOneBottomRightScanned', fnTarget.atLeastOneBottomRightScanned());
 
     // Missions accompiles
     for (let d of game.myDrones) {
@@ -102,7 +89,6 @@ while (1 === 1) {
     }
 
     let [t1, t2] = fnTarget.splitTargets(targets);
-    // console.error('targets', t1, t2);
 
     // calcul mission
     for (let d of game.myDrones) {
@@ -111,8 +97,6 @@ while (1 === 1) {
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
         const target = d.idx === 0 ? t1 : t2;
         const vsMate = game.vsDrones.find(v => v.imLeft === d.imLeft);
-        const myTurnToUp = fn.turnToUp(d);
-        const vsTurnToUp = fn.turnToUp(vsMate);
 
         if (d.emergency) {
             d.mission = 'EMERGENCY';
@@ -125,9 +109,6 @@ while (1 === 1) {
             else if (!d.scored && !d.imLeft && fnTarget.atLeastOneBottomRightScanned() && targets.length > 0) {
                 d.mission = 'SEARCH';
             } else {
-            // else if (!d.scored && !d.imLeft && fnTarget.atLeastOneBottomRightScanned()) {
-            //     d.mission = 'UP';
-            // } else {
                 if (targets.length === 0 || (!target && d.creaturesScanned.length > 0)) {
                     d.mission = 'FINISHED';
                 } else {
@@ -145,9 +126,7 @@ while (1 === 1) {
 
     // On recalcule les targets car les missions ont changés
     [t1, t2] = fnTarget.splitTargets(targets);
-    // console.error('targets', t1, t2);
 
-    // On calcule les angles
     for (let d of game.myDrones) {
 
         const oldD = lastGame.myDrones.find(v => v.droneId === d.droneId);
@@ -179,7 +158,7 @@ while (1 === 1) {
             }
 
             if (!forceLightFoClose) {
-                let target = null; // trop direct 1859577925107042800
+                let target = null; // trop direct seed 1859577925107042800
                 if (d.y > 5000) {
                     target = fnTarget.getMostX(d, 1, game);
                 } else if (d.y > 2500) {
@@ -237,7 +216,6 @@ while (1 === 1) {
             debug.push('T=' + target);
             console.error('search', d.droneId, target, pointToTarget.x, pointToTarget.y, angleToTarget);
 
-            // if (oldD.mission !== d.mission || fn.ilEstPretDuBord(d)) {
             if (oldD.mission !== d.mission || fn.ilestPRetDuBordXY(d)) {
                 debug.push('DI');
                 d.angle = angleToTarget;

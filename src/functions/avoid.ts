@@ -80,8 +80,6 @@ export const fnAvoid = {
 
         const paddingPrefered = 400;
 
-        // angles = angles.filter(a => a.distanceBord > paddingPrefered);
-
         angles = angles.sort((a, b) => {
             if (a.distanceBord >= paddingPrefered && b.distanceBord < paddingPrefered) {
                 return -1;
@@ -93,8 +91,6 @@ export const fnAvoid = {
         });
 
         const best = angles.find(a => {
-
-            return true;
 
             const angle = a.angle;
 
@@ -108,25 +104,16 @@ export const fnAvoid = {
                 ...fnFuture.getFuturePosition(m),
             }));
 
-            // console.error('futureD', futureD);
-            // console.error('futureMonsters', futureMonsters);
-
             futureMonsters.forEach(m => fnFuture.computeFutureAngle(m, [futureD], []));
-            // futureMonsters.forEach(m => console.error('futureFuture m', m.creatureId, fnFuture.getFuturePosition(m), fn.getDistance(futureD, fnFuture.getFuturePosition(m)));
 
             for (let nextAngle = 0; nextAngle <= 360; nextAngle += 45) {
                 if (!jeMeFaisMiam(futureD, nextAngle, futureMonsters, 10, 600)) {
-                    // console.error('myFutureFuture', fn.forward(futureD, nextAngle, 600));
-                    // console.error('avec ', angle, nextAngle, ' je me fais pas miam next turn');
                     return true;
                 }
             }
 
-            console.error('avec ', angle, ' je me fais miam pour sur');
             return false;
         });
-
-        // console.error('best', best);
 
         return best.angle;
     },
